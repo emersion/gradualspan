@@ -1,4 +1,4 @@
-package fr.emersion.jena-playground;
+package fr.emersion.jenaplayground;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
