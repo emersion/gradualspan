@@ -235,9 +235,10 @@ public class App {
 			List<Resource> list = sortObjects(intervalBeforeProp, intervals);
 			for (Resource interval : list) {
 				System.out.println(interval);
-				Statement s = interval.getProperty(intervalBeforeProp);
-				if (s != null) {
-					System.out.printf("  next: %s\n", s.getResource());
+
+				StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
+				while (intervalBeforeIter.hasNext()) {
+					System.out.printf("  next: %s\n", intervalBeforeIter.next().getResource());
 				}
 			}
 
