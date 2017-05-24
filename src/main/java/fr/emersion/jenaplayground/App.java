@@ -1,18 +1,26 @@
 package fr.emersion.jenaplayground;
 
-import java.util.Iterator;
 import java.lang.Iterable;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.ListIterator;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.HashSet;
 import org.apache.jena.ontology.OntClass;
-import org.apache.jena.ontology.OntProperty;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
+import org.apache.jena.ontology.OntProperty;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.QuerySolution;
+import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
@@ -23,12 +31,6 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.FileManager;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.ResultSet;
-import org.apache.jena.query.QuerySolution;
 
 public class App {
 	public static final String PO2_NS = "http://opendata.inra.fr/PO2/";
@@ -55,85 +57,8 @@ public class App {
 		System.out.printf("\n");
 	}
 
-	/*public static LinkedList<Resource> sortObjects(OntProperty prop, Iterator<Resource> iter) {
-		LinkedList<Resource> list = new LinkedList();
-
-		while (iter.hasNext()) {
-			Resource newObj = iter.next();
-			Statement newStmt = newObj.getProperty(prop);
-			if (newStmt == null) {
-				list.addLast(newObj);
-				continue;
-			}
-
-			ListIterator<Resource> listIter = list.listIterator();
-			boolean inserted = false;
-			while (listIter.hasNext()) {
-				Resource o = listIter.next();
-				Statement s = o.getProperty(prop);
-				if (s == null) {
-					listIter.previous();
-					listIter.add(newObj);
-					inserted = true;
-					break;
-				}
-				if (s.getResource().equals(newObj)) {
-					listIter.add(newObj);
-					inserted = true;
-					break;
-				}
-				if (newStmt.getResource().equals(o)) {
-					listIter.previous();
-					listIter.add(newObj);
-					inserted = true;
-					break;
-				}
-			}
-			if (!inserted) {
-				list.addLast(newObj);
-			}
-
-			// System.out.println("---");
-			// for (Resource interval : list) {
-			// 	System.out.println(interval);
-			// 	Statement s = interval.getProperty(prop);
-			// 	if (s != null) {
-			// 		System.out.printf("  next: %s\n", s.getResource());
-			// 	}
-			// }
-		}
-
-		return list;
-	}*/
-
-	// Greedy algorithm:
-	// - Find heads: for each object, check if another is before
-	// - BFS from heads to leaves
-	public static ArrayList<Resource> sortObjects(OntProperty prop, Iterable<Resource> objects) {
-		// Queue<Resource> heads = new LinkedList();
-		// for (Resource object : objects) {
-		// 	int size = object.listProperties(prop).toList().size();
-		// 	System.out.println(size);
-		// 	System.out.println(object.getProperty(prop));
-		//
-		// 	boolean isHead = true;
-		// 	for (Resource o : objects) {
-		// 		Statement s = o.getProperty(prop);
-		// 		if (s == null) {
-		// 			continue; // This is a leaf
-		// 		}
-		// 		if (s.getResource().equals(object)) {
-		// 			// object is after o, thus is not a head
-		// 			isHead = false;
-		// 			break;
-		// 		}
-		// 	}
-		//
-		// 	if (isHead) {
-		// 		heads.add(object);
-		// 	}
-		// }
-
+	// TODO: assumes objects is a tree
+	public static List<List<Resource>> sortObjects(OntProperty prop, Iterable<Resource> objects) {
 		// Find heads: find object that don't have an anscestor
 		Set<Resource> heads = new HashSet();
 		for (Resource object : objects) {
@@ -154,22 +79,35 @@ public class App {
 			queue.add(head);
 		}
 
-		ArrayList<Resource> list = new ArrayList();
+		int queueLen = queue.size();
+		int nextQueueLen = 0;
+		List<Resource> list = new ArrayList();
+		List<List<Resource>> result = new ArrayList();
 		while (true) {
 			Resource object = queue.poll();
 			if (object == null) {
 				break;
 			}
+			queueLen--;
 
 			list.add(object);
 
 			Statement s = object.getProperty(prop);
 			if (s != null) {
 				queue.add(s.getResource());
+				nextQueueLen++;
+			}
+
+			if (queueLen == 0) {
+				queueLen = nextQueueLen;
+				nextQueueLen = 0;
+
+				result.add(list);
+				list = new ArrayList();
 			}
 		}
 
-		return list;
+		return result;
 	}
 
 	public static void main(String[] args) {
@@ -219,27 +157,29 @@ public class App {
 		OntProperty intervalBeforeProp = ontModel.getOntProperty(TIME_NS+"intervalBefore");
 
 		ResIterator iter = model.listSubjectsWithProperty(RDF.type, itineraryClass);
-		//iter.next();
+		iter.next();
 		while (iter.hasNext()) {
 			Resource itinerary = iter.next();
 			//printProperties(itinerary);
-			System.out.println(itinerary);
 
 			StmtIterator stmtIter = itinerary.listProperties(hasForStepProp);
-			ArrayList<Resource> intervals = new ArrayList();
+			Map<Resource, Resource> steps = new HashMap();
 			while (stmtIter.hasNext()) {
-				Statement stmt = stmtIter.next();
-				intervals.add(stmt.getResource().getProperty(existsAtProp).getResource());
+				Resource step = stmtIter.next().getResource();
+				steps.put(step.getProperty(existsAtProp).getResource(), step);
 			}
 
-			List<Resource> list = sortObjects(intervalBeforeProp, intervals);
-			for (Resource interval : list) {
-				System.out.println(interval);
+			List<List<Resource>> result = sortObjects(intervalBeforeProp, steps.keySet());
+			for (List<Resource> list : result) {
+				for (Resource interval : list) {
+					System.out.println(interval);
 
-				StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
-				while (intervalBeforeIter.hasNext()) {
-					System.out.printf("  next: %s\n", intervalBeforeIter.next().getResource());
+					StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
+					while (intervalBeforeIter.hasNext()) {
+						System.out.printf("	next: %s\n", intervalBeforeIter.next().getResource());
+					}
 				}
+				System.out.printf("\n");
 			}
 
 			// while (stmtIter.hasNext()) {
@@ -252,10 +192,5 @@ public class App {
 
 			break;
 		}
-
-		// String johnSmithURI = "http://somewhere/JohnSmith/";
-		// Resource vcard = model.getResource(johnSmithURI);
-		// String fullName = vcard.getProperty(VCARD.FN).getString();
-		// System.out.println(fullName);
 	}
 }
