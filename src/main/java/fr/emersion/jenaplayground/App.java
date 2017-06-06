@@ -7,6 +7,7 @@ import java.lang.Iterable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -63,17 +64,46 @@ public class App {
 		System.out.printf("\n");
 	}
 
-	// TODO: assumes objects is a tree
+	private static void step(Map<Resource, Integer> depths, OntProperty nextProp, Map<Resource, Collection<Resource>> ancestors, Resource object, int i) {
+		if (depths.containsKey(object)) {
+			if (depths.get(object) != i) {
+				System.out.printf("Invalid depth for %s (theirs: %d, ours: %d)\n", object, depths.get(object), i);
+				return;
+			} else if (i != 0) {
+				return;
+			}
+		} else {
+			depths.put(object, i);
+		}
+
+		StmtIterator stmtIter = object.listProperties(nextProp);
+		while (stmtIter.hasNext()) {
+			Resource next = stmtIter.next().getResource();
+			if (next.equals(object)) {
+				System.out.println("Object after "+object.toString()+" is itself");
+				continue;
+			}
+			step(depths, nextProp, ancestors, next, i + 1);
+		}
+
+		if (ancestors.containsKey(object)) {
+			for (Resource prev : ancestors.get(object)) {
+				if (prev.equals(object)) {
+					System.out.println("Object before "+object.toString()+" is itself");
+					continue;
+				}
+				step(depths, nextProp, ancestors, prev, i - 1);
+			}
+		}
+	}
+
 	public static List<List<Resource>> sortObjects(OntProperty nextProp, Collection<Resource> objects) {
-		// Build a list of heads
 		// Build a map of ancestors
-		Set<Resource> heads = new HashSet(objects);
-		Map<Resource, List<Resource>> ancestors = new HashMap();
+		Map<Resource, Collection<Resource>> ancestors = new HashMap();
 		for (Resource object : objects) {
 			StmtIterator stmtIter = object.listProperties(nextProp);
 			while (stmtIter.hasNext()) {
 				Resource next = stmtIter.next().getResource();
-				heads.remove(next);
 
 				if (!ancestors.containsKey(next)) {
 					ancestors.put(next, new ArrayList());
@@ -82,40 +112,36 @@ public class App {
 			}
 		}
 
-		// BFS from heads to leaves
-		Queue<Resource> queue = new LinkedList(heads);
-		int queueLen = queue.size();
-		int nextQueueLen = 0;
-		List<Resource> list = new ArrayList();
+		// Walk in graph
+		Map<Resource, Integer> depths = new HashMap();
+		for (Resource object : objects) {
+			if (depths.containsKey(object)) {
+				continue;
+			}
+
+			depths.put(object, 0);
+
+			step(depths, nextProp, ancestors, object, 0);
+		}
+
+		// Sort objects
+		List<Resource> list = new ArrayList(objects);
+		Collections.sort(list, (a, b) -> depths.get(a) - depths.get(b));
+
+		// Build 2D list
+		int curDepth = 0;
 		List<List<Resource>> result = new ArrayList();
-		Set<Resource> processed = heads; // TODO: this isn't so cool
-		while (true) {
-			Resource object = queue.poll();
-			if (object == null) {
-				break;
-			}
-			queueLen--;
-
-			list.add(object);
-
-			StmtIterator stmtIter = object.listProperties(nextProp);
-			while (stmtIter.hasNext()) {
-				Statement s = stmtIter.next();
-				Resource next = s.getResource();
-				if (!next.equals(object) && !processed.contains(next)) {
-					queue.add(next);
-					processed.add(next);
-					nextQueueLen++;
-				}
+		List<Resource> cur = null;
+		for (Resource object : list) {
+			int depth = depths.get(object);
+			if (cur == null || curDepth < depth) {
+				curDepth = depth;
+				cur = new ArrayList();
+				result.add(cur);
+				curDepth = depth;
 			}
 
-			if (queueLen == 0) {
-				queueLen = nextQueueLen;
-				nextQueueLen = 0;
-
-				result.add(list);
-				list = new ArrayList();
-			}
+			cur.add(object);
 		}
 
 		return result;
@@ -146,6 +172,16 @@ public class App {
 			"PREFIX rdfs: <"+RDFS.uri+">\n" +
 			"PREFIX : <"+PO2_NS+">\n" +
 			"PREFIX time: <"+TIME_NS+">\n";
+
+		OntClass itineraryClass = ontModel.getOntClass(PO2_NS+"itinerary");
+		OntProperty hasForStepProp = ontModel.getOntProperty(PO2_NS+"hasForStep");
+		OntProperty existsAtProp = ontModel.getOntProperty(PO2_NS+"existsAt");
+		OntProperty intervalBeforeProp = ontModel.getOntProperty(TIME_NS+"intervalBefore");
+		OntProperty isQualityMeasurementOfProp = ontModel.getOntProperty(isQualityMeasurementOfURI);
+		OntProperty hasForValueProp = ontModel.getOntProperty(PO2_NS+"hasForValue");
+		OntProperty minKernelProp = ontModel.getOntProperty(PO2_NS+"minKernel");
+		OntProperty hasForUnitOfMeasureProp = ontModel.getOntProperty(PO2_NS+"hasForUnitOfMeasure");
+		OntProperty observesProp = ontModel.getOntProperty(PO2_NS+"observes");
 
 		/*String queryString = prefixes +
 			"SELECT ?x WHERE {\n" +
@@ -215,15 +251,36 @@ public class App {
 
 		System.out.println("---");*/
 
-		OntClass itineraryClass = ontModel.getOntClass(PO2_NS+"itinerary");
-		OntProperty hasForStepProp = ontModel.getOntProperty(PO2_NS+"hasForStep");
-		OntProperty existsAtProp = ontModel.getOntProperty(PO2_NS+"existsAt");
-		OntProperty intervalBeforeProp = ontModel.getOntProperty(TIME_NS+"intervalBefore");
-		OntProperty isQualityMeasurementOfProp = ontModel.getOntProperty(isQualityMeasurementOfURI);
-		OntProperty hasForValueProp = ontModel.getOntProperty(PO2_NS+"hasForValue");
-		OntProperty minKernelProp = ontModel.getOntProperty(PO2_NS+"minKernel");
-		OntProperty hasForUnitOfMeasureProp = ontModel.getOntProperty(PO2_NS+"hasForUnitOfMeasure");
-		OntProperty observesProp = ontModel.getOntProperty(PO2_NS+"observes");
+		String queryString = prefixes +
+			"SELECT ?i WHERE {\n" +
+			"	?s rdf:type/rdfs:subClassOf* :step .\n" +
+			"	?s :existsAt ?i .\n" +
+			"}";
+
+		List<Resource> intervals = new ArrayList();
+		Query query = QueryFactory.create(queryString);
+		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
+			ResultSet results = qexec.execSelect();
+			while (results.hasNext()) {
+				QuerySolution soln = results.nextSolution();
+				intervals.add(soln.getResource("i"));
+			}
+		}
+
+		List<List<Resource>> result = sortObjects(intervalBeforeProp, intervals);
+		for (List<Resource> list : result) {
+			for (Resource interval : list) {
+				System.out.println(interval);
+
+				// StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
+				// while (intervalBeforeIter.hasNext()) {
+				// 	System.out.printf("	next: %s\n", intervalBeforeIter.next().getResource());
+				// }
+			}
+			System.out.printf("\n");
+		}
+
+		/*System.out.println("---");
 
 		ResIterator iter = model.listSubjectsWithProperty(RDF.type, itineraryClass);
 		iter.next();
@@ -364,6 +421,6 @@ public class App {
 			// }
 
 			break;
-		}
+		}*/
 	}
 }
