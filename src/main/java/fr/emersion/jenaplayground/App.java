@@ -147,10 +147,15 @@ public class App {
 		return result;
 	}
 
+	public static String compactURI(String uri) {
+		return uri.replace(PO2_NS, ":");
+	}
+
 	public static void main(String[] args) throws Exception {
-		String ontFile = "/home/simon/Downloads/PO2_core_v1.4.rdf";
+		//String ontFile = "/home/simon/Downloads/PO2_core_v1.4.rdf";
 		//String objectsFile = "/home/simon/Downloads/Echantillon_PO2_CellExtraDry.rdf";
-		String objectsFile = "/home/simon/Downloads/PO2_CellExtraDryData.rdf";
+		//String objectsFile = "/home/simon/Downloads/PO2_CellExtraDryData.rdf";
+		String objectsFile = "/home/simon/Downloads/PO2_CarredasData.rdf";
 
 		String processURI = "http://opendata.inra.fr/PO2/cellextradry_process_13";
 		String itineraryURI = "http://opendata.inra.fr/PO2/Itinerary1";
@@ -158,9 +163,9 @@ public class App {
 
 		String isQualityMeasurementOfURI = "http://purl.obolibrary.org/obo/IAO_0000221";
 
+		System.out.println("Loading ontology...");
 		OntModel ontModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM, null);
 		ontModel.read(FileManager.get().open(objectsFile), null);
-		System.out.println("Loaded ontology");
 
 		Model model = ontModel;
 		//Model model = ontModel.getBaseModel();
@@ -251,64 +256,55 @@ public class App {
 
 		System.out.println("---");*/
 
-		String queryString = prefixes +
-			"SELECT ?s ?i WHERE {\n" +
-			"	?s rdf:type/rdfs:subClassOf* :step .\n" +
-			"	?s :existsAt ?i .\n" +
-			"}";
+		System.out.println("Loading time concept...");
 
 		Map<Resource, Resource> steps = new HashMap<>();
-		Query query = QueryFactory.create(queryString);
-		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
-			ResultSet results = qexec.execSelect();
-			while (results.hasNext()) {
-				QuerySolution soln = results.nextSolution();
-				steps.put(soln.getResource("i"), soln.getResource("s"));
+		{
+			String queryString = prefixes +
+				"SELECT ?s ?i WHERE {\n" +
+				"	?s rdf:type/rdfs:subClassOf* :step .\n" +
+				"	?s :existsAt ?i .\n" +
+				"}";
+
+			Query query = QueryFactory.create(queryString);
+			try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
+				ResultSet results = qexec.execSelect();
+				while (results.hasNext()) {
+					QuerySolution soln = results.nextSolution();
+					steps.put(soln.getResource("i"), soln.getResource("s"));
+				}
 			}
 		}
 
 		List<List<Resource>> intervals = sortObjects(intervalBeforeProp, steps.keySet());
-		// for (List<Resource> list : intervals) {
+		// for (List<Resource> list : result) {
 		// 	for (Resource interval : list) {
 		// 		System.out.println(interval);
+		//
+		// 		StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
+		// 		while (intervalBeforeIter.hasNext()) {
+		// 			System.out.printf("	next: %s\n", intervalBeforeIter.next().getResource());
+		// 		}
 		// 	}
 		// 	System.out.printf("\n");
 		// }
 
-		/*System.out.println("---");
-
 		ResIterator iter = model.listSubjectsWithProperty(RDF.type, itineraryClass);
-		iter.next();
 		while (iter.hasNext()) {
 			Resource itinerary = iter.next();
 			//printProperties(itinerary);
+			System.out.printf("Processing itinerary %s\n", itinerary);
 
 			StmtIterator stmtIter = itinerary.listProperties(hasForStepProp);
-			Map<Resource, Resource> steps = new HashMap<>();
+			Set<Resource> itinerarySteps = new HashSet<>();
 			while (stmtIter.hasNext()) {
 				Resource step = stmtIter.next().getResource();
-				steps.put(step.getProperty(existsAtProp).getResource(), step);
-				//System.out.println(step.getProperty(existsAtProp).getResource());
+				itinerarySteps.add(step);
 			}
-			//System.out.println("---");
-
-			List<List<Resource>> result = sortObjects(intervalBeforeProp, steps.keySet());
-
-			// for (List<Resource> list : result) {
-			// 	for (Resource interval : list) {
-			// 		System.out.println(interval);
-			//
-			// 		StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
-			// 		while (intervalBeforeIter.hasNext()) {
-			// 			System.out.printf("	next: %s\n", intervalBeforeIter.next().getResource());
-			// 		}
-			// 	}
-			// 	System.out.printf("\n");
-			// }
 
 			Set<String> attributes = new HashSet<>();
 			List<Map<String, Float>> table = new ArrayList<>();
-			for (List<Resource> list : result) {
+			for (List<Resource> list : intervals) {
 				Map<String, Float> row = new HashMap<>();
 				table.add(row);
 
@@ -316,6 +312,9 @@ public class App {
 					Resource step = steps.get(interval);
 					if (step == null) {
 						System.out.printf("Interval %s has no step\n", interval);
+						continue;
+					}
+					if (!itinerarySteps.contains(step)) {
 						continue;
 					}
 
@@ -353,7 +352,7 @@ public class App {
 							}
 
 							Resource qt = isQualityMeasurementOf.getResource().getProperty(RDF.type).getResource();
-							String k = qt.getURI().replace(PO2_NS, ":");
+							String k = compactURI(qt.getURI());
 
 							String s;
 							if (hasForValue != null) {
@@ -389,12 +388,13 @@ public class App {
 				}
 			}
 
-			try (OutputStream os = new FileOutputStream("output.csv")) {
+			String name = compactURI(itinerary.getURI()).replace(":", "");
+			try (OutputStream os = new FileOutputStream("output-"+name+".tsv")) {
 				PrintStream ps = new PrintStream(os);
 
 				ps.println(String.join("\t", attributes));
 				for (Map<String, Float> row : table) {
-					List<String> values = new ArrayList();
+					List<String> values = new ArrayList<>();
 					for (String k : attributes) {
 						Float v = row.get(k);
 						if (v == null) {
@@ -406,16 +406,6 @@ public class App {
 					ps.println(String.join("\t", values));
 				}
 			}
-
-			// while (stmtIter.hasNext()) {
-			// 	Statement stmt = stmtIter.next();
-			// 	Resource step = stmt.getResource();
-			// 	//printProperties(step);
-			// 	Resource interval = step.getProperty(existsAtProp).getResource();
-			// 	//printChildren(intervalBeforeProp, interval);
-			// }
-
-			break;
-		}*/
+		}
 	}
 }
