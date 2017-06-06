@@ -99,21 +99,21 @@ public class App {
 
 	public static List<List<Resource>> sortObjects(OntProperty nextProp, Collection<Resource> objects) {
 		// Build a map of ancestors
-		Map<Resource, Collection<Resource>> ancestors = new HashMap();
+		Map<Resource, Collection<Resource>> ancestors = new HashMap<>();
 		for (Resource object : objects) {
 			StmtIterator stmtIter = object.listProperties(nextProp);
 			while (stmtIter.hasNext()) {
 				Resource next = stmtIter.next().getResource();
 
 				if (!ancestors.containsKey(next)) {
-					ancestors.put(next, new ArrayList());
+					ancestors.put(next, new ArrayList<>());
 				}
 				ancestors.get(next).add(object);
 			}
 		}
 
 		// Walk in graph
-		Map<Resource, Integer> depths = new HashMap();
+		Map<Resource, Integer> depths = new HashMap<>();
 		for (Resource object : objects) {
 			if (depths.containsKey(object)) {
 				continue;
@@ -125,18 +125,18 @@ public class App {
 		}
 
 		// Sort objects
-		List<Resource> list = new ArrayList(objects);
+		List<Resource> list = new ArrayList<>(objects);
 		Collections.sort(list, (a, b) -> depths.get(a) - depths.get(b));
 
 		// Build 2D list
 		int curDepth = 0;
-		List<List<Resource>> result = new ArrayList();
+		List<List<Resource>> result = new ArrayList<>();
 		List<Resource> cur = null;
 		for (Resource object : list) {
 			int depth = depths.get(object);
 			if (cur == null || curDepth < depth) {
 				curDepth = depth;
-				cur = new ArrayList();
+				cur = new ArrayList<>();
 				result.add(cur);
 				curDepth = depth;
 			}
@@ -252,33 +252,28 @@ public class App {
 		System.out.println("---");*/
 
 		String queryString = prefixes +
-			"SELECT ?i WHERE {\n" +
+			"SELECT ?s ?i WHERE {\n" +
 			"	?s rdf:type/rdfs:subClassOf* :step .\n" +
 			"	?s :existsAt ?i .\n" +
 			"}";
 
-		List<Resource> intervals = new ArrayList();
+		Map<Resource, Resource> steps = new HashMap<>();
 		Query query = QueryFactory.create(queryString);
 		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
 			ResultSet results = qexec.execSelect();
 			while (results.hasNext()) {
 				QuerySolution soln = results.nextSolution();
-				intervals.add(soln.getResource("i"));
+				steps.put(soln.getResource("i"), soln.getResource("s"));
 			}
 		}
 
-		List<List<Resource>> result = sortObjects(intervalBeforeProp, intervals);
-		for (List<Resource> list : result) {
-			for (Resource interval : list) {
-				System.out.println(interval);
-
-				// StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
-				// while (intervalBeforeIter.hasNext()) {
-				// 	System.out.printf("	next: %s\n", intervalBeforeIter.next().getResource());
-				// }
-			}
-			System.out.printf("\n");
-		}
+		List<List<Resource>> intervals = sortObjects(intervalBeforeProp, steps.keySet());
+		// for (List<Resource> list : intervals) {
+		// 	for (Resource interval : list) {
+		// 		System.out.println(interval);
+		// 	}
+		// 	System.out.printf("\n");
+		// }
 
 		/*System.out.println("---");
 
@@ -289,7 +284,7 @@ public class App {
 			//printProperties(itinerary);
 
 			StmtIterator stmtIter = itinerary.listProperties(hasForStepProp);
-			Map<Resource, Resource> steps = new HashMap();
+			Map<Resource, Resource> steps = new HashMap<>();
 			while (stmtIter.hasNext()) {
 				Resource step = stmtIter.next().getResource();
 				steps.put(step.getProperty(existsAtProp).getResource(), step);
@@ -311,10 +306,10 @@ public class App {
 			// 	System.out.printf("\n");
 			// }
 
-			Set<String> attributes = new HashSet();
-			List<Map<String, Float>> table = new ArrayList();
+			Set<String> attributes = new HashSet<>();
+			List<Map<String, Float>> table = new ArrayList<>();
 			for (List<Resource> list : result) {
-				Map<String, Float> row = new HashMap();
+				Map<String, Float> row = new HashMap<>();
 				table.add(row);
 
 				for (Resource interval : list) {
