@@ -1,7 +1,12 @@
 package fr.emersion.jenaplayground;
 
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.Iterable;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,9 +16,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
@@ -62,27 +64,26 @@ public class App {
 	}
 
 	// TODO: assumes objects is a tree
-	public static List<List<Resource>> sortObjects(OntProperty prop, Iterable<Resource> objects) {
-		// Find heads: find object that don't have an anscestor
-		Set<Resource> heads = new HashSet();
+	public static List<List<Resource>> sortObjects(OntProperty nextProp, Collection<Resource> objects) {
+		// Build a list of heads
+		// Build a map of ancestors
+		Set<Resource> heads = new HashSet(objects);
+		Map<Resource, List<Resource>> ancestors = new HashMap();
 		for (Resource object : objects) {
-			heads.add(object);
-		}
-
-		for (Resource object : objects) {
-			StmtIterator stmtIter = object.listProperties(prop);
+			StmtIterator stmtIter = object.listProperties(nextProp);
 			while (stmtIter.hasNext()) {
-				Statement s = stmtIter.next();
-				heads.remove(s.getResource());
+				Resource next = stmtIter.next().getResource();
+				heads.remove(next);
+
+				if (!ancestors.containsKey(next)) {
+					ancestors.put(next, new ArrayList());
+				}
+				ancestors.get(next).add(object);
 			}
 		}
 
 		// BFS from heads to leaves
-		Queue<Resource> queue = new LinkedList();
-		for (Resource head : heads) {
-			queue.add(head);
-		}
-
+		Queue<Resource> queue = new LinkedList(heads);
 		int queueLen = queue.size();
 		int nextQueueLen = 0;
 		List<Resource> list = new ArrayList();
@@ -97,7 +98,7 @@ public class App {
 
 			list.add(object);
 
-			StmtIterator stmtIter = object.listProperties(prop);
+			StmtIterator stmtIter = object.listProperties(nextProp);
 			while (stmtIter.hasNext()) {
 				Statement s = stmtIter.next();
 				Resource next = s.getResource();
