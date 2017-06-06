@@ -34,6 +34,7 @@
         <version>3.6.1</version>
         <configuration>
           <compilerArgs>
+            <arg>-Werror</arg>
             <arg>-Xlint:all,-options,-path</arg>
           </compilerArgs>
         </configuration>
