@@ -320,39 +320,49 @@ public class App {
 
 					// TODO: fat non-optimized query
 					String queryString = prefixes +
-						"SELECT ?m WHERE {" +
-						"	?m rdf:type/rdfs:subClassOf* :simple_measure ." +
+						"SELECT ?measure ?product WHERE {" +
 						"	{" +
-						"		?o :observedDuring ?s ." +
-						"		?o :computedResult/:hasForMeasure ?m ." +
+						"		?observation :observedDuring ?step ." +
+						"		?observation :computedResult/:hasForMeasure ?measure ." +
 						"	} UNION {" +
-						"		?s :hasForParticipant ?p ." +
-						"		?p :hasForAttribute/:hasForMeasure ?m ." +
-						"	}" +
+						"		?step :hasForMixture ?mixture ." +
+						"		?mixture :hasForAttribute/:hasForMeasure ?measure ." +
+						"	} UNION {" +
+						"		?step :hasForMixture ?mixture ." +
+						"		?mixture :isComposedOf ?product ." +
+						"		?product :hasForAttribute/:hasForMeasure ?measure ." +
+						"	} ." +
+						"	?measure rdf:type/rdfs:subClassOf* :simple_measure ." +
 						"}";
 
 					QuerySolutionMap bindings = new QuerySolutionMap();
-					bindings.add("s", step);
+					bindings.add("step", step);
 
 					Query query = QueryFactory.create(queryString);
 					try (QueryExecution qexec = QueryExecutionFactory.create(query, model, bindings)) {
 						ResultSet results = qexec.execSelect();
 						while (results.hasNext()) {
 							QuerySolution sol = results.nextSolution();
-							Resource m = sol.getResource("m");
+							Resource measure = sol.getResource("measure");
+							Resource product = sol.getResource("product");
 
-							Statement hasForValue = m.getProperty(hasForValueProp);
-							Statement minKernel = m.getProperty(minKernelProp);
-							Statement hasForUnitOfMeasure = m.getProperty(hasForUnitOfMeasureProp);
-							Statement isQualityMeasurementOf = m.getProperty(isQualityMeasurementOfProp);
+							Statement hasForValue = measure.getProperty(hasForValueProp);
+							Statement minKernel = measure.getProperty(minKernelProp);
+							Statement hasForUnitOfMeasure = measure.getProperty(hasForUnitOfMeasureProp);
+							Statement isQualityMeasurementOf = measure.getProperty(isQualityMeasurementOfProp);
 
 							if (isQualityMeasurementOf == null) {
-								System.out.printf("Measure %s has no quality\n", m);
+								System.out.printf("Measure %s has no quality\n", measure);
 								continue;
 							}
 
-							Resource qt = isQualityMeasurementOf.getResource().getProperty(RDF.type).getResource();
-							String k = compactURI(qt.getURI());
+							Resource qualityType = isQualityMeasurementOf.getResource().getProperty(RDF.type).getResource();
+
+							String k = compactURI(qualityType.getURI());
+							if (product != null) {
+								Resource productType = product.getProperty(RDF.type).getResource();
+								k = compactURI(productType.getURI()) + " " + k;
+							}
 
 							String s;
 							if (hasForValue != null) {
@@ -360,7 +370,7 @@ public class App {
 							} else if (minKernel != null) {
 								s = minKernel.getString();
 							} else {
-								System.out.printf("Measure %s has no value\n", m);
+								System.out.printf("Measure %s has no value\n", measure);
 								continue;
 							}
 							s = s.replace(",", "."); // Screw French people
@@ -372,7 +382,7 @@ public class App {
 								}
 								v = new Float(s);
 							} catch (NumberFormatException e) {
-								System.out.printf("Measure %s has invalid value: %s\n", m, s);
+								System.out.printf("Measure %s has invalid value: %s\n", measure, s);
 								continue;
 							}
 
@@ -388,6 +398,9 @@ public class App {
 				}
 			}
 
+			int maxValues = attributes.size() * table.size();
+			int nbrValues = 0;
+
 			String name = compactURI(itinerary.getURI()).replace(":", "");
 			try (OutputStream os = new FileOutputStream("output-"+name+".tsv")) {
 				PrintStream ps = new PrintStream(os);
@@ -401,11 +414,14 @@ public class App {
 							values.add("");
 						} else {
 							values.add(v.toString());
+							nbrValues++;
 						}
 					}
 					ps.println(String.join("\t", values));
 				}
 			}
+
+			System.out.printf("Values rate: %f\n", (float) nbrValues / (float) maxValues);
 		}
 	}
 }
