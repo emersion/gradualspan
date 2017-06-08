@@ -318,9 +318,8 @@ public class App {
 						continue;
 					}
 
-					// TODO: fat non-optimized query
 					String queryString = prefixes +
-						"SELECT ?measure ?product WHERE {" +
+						"SELECT ?measure ?observation ?mixture ?product WHERE {" +
 						"	{" +
 						"		?observation :observedDuring ?step ." +
 						"		?observation :computedResult/:hasForMeasure ?measure ." +
@@ -344,6 +343,8 @@ public class App {
 						while (results.hasNext()) {
 							QuerySolution sol = results.nextSolution();
 							Resource measure = sol.getResource("measure");
+							Resource observation = sol.getResource("observation");
+							Resource mixture = sol.getResource("mixture");
 							Resource product = sol.getResource("product");
 
 							Statement hasForValue = measure.getProperty(hasForValueProp);
@@ -359,9 +360,13 @@ public class App {
 							Resource qualityType = isQualityMeasurementOf.getResource().getProperty(RDF.type).getResource();
 
 							String k = compactURI(qualityType.getURI());
-							if (product != null) {
+							if (observation != null) {
+								k = ":observation " + k;
+							} else if (product != null) {
 								Resource productType = product.getProperty(RDF.type).getResource();
-								k = compactURI(productType.getURI()) + " " + k;
+								k = ":product " + compactURI(productType.getURI()) + " " + k;
+							} else {
+								k = ":mixture " + k;
 							}
 
 							String s;
