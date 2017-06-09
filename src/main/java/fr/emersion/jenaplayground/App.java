@@ -52,29 +52,37 @@ public class App {
 	}
 
 	public static void printChildren(OntProperty prop, Resource interval) {
-		System.out.printf("%s", interval);
+		System.out.println(interval);
 		while (true) {
 			Statement stmt = interval.getProperty(prop);
 			if (stmt == null) {
 				break;
 			}
 			interval = stmt.getResource();
-			System.out.printf(" -> %s\n", interval);
+			System.out.printf("	%s\n", interval);
 		}
 		System.out.printf("\n");
 	}
 
-	private static void step(Map<Resource, Integer> depths, OntProperty nextProp, Map<Resource, Collection<Resource>> ancestors, Resource object, int i) {
+	private static void step(Map<Resource, Integer> depths, OntProperty nextProp, Map<Resource, Collection<Resource>> ancestors, Resource object, int lastDepth, int depth) {
 		if (depths.containsKey(object)) {
-			if (depths.get(object) != i) {
-				System.out.printf("Invalid depth for %s (theirs: %d, ours: %d)\n", object, depths.get(object), i);
-				return;
-			} else if (i != 0) {
+			int existingDepth = depths.get(object);
+			if (existingDepth != depth) {
+				// Depth conflict
+				if (lastDepth < depth && lastDepth < existingDepth) {
+					// Going forward
+					return;
+				}
+				if (lastDepth > depth && lastDepth > existingDepth) {
+					// Going backward
+					return;
+				}
+			} else if (depth != 0) {
+				// Already explored
 				return;
 			}
-		} else {
-			depths.put(object, i);
 		}
+		depths.put(object, depth);
 
 		StmtIterator stmtIter = object.listProperties(nextProp);
 		while (stmtIter.hasNext()) {
@@ -83,7 +91,7 @@ public class App {
 				System.out.println("Object after "+object.toString()+" is itself");
 				continue;
 			}
-			step(depths, nextProp, ancestors, next, i + 1);
+			step(depths, nextProp, ancestors, next, depth, depth + 1);
 		}
 
 		if (ancestors.containsKey(object)) {
@@ -92,7 +100,7 @@ public class App {
 					System.out.println("Object before "+object.toString()+" is itself");
 					continue;
 				}
-				step(depths, nextProp, ancestors, prev, i - 1);
+				step(depths, nextProp, ancestors, prev, depth, depth - 1);
 			}
 		}
 	}
@@ -121,7 +129,7 @@ public class App {
 
 			depths.put(object, 0);
 
-			step(depths, nextProp, ancestors, object, 0);
+			step(depths, nextProp, ancestors, object, 0, 0);
 		}
 
 		// Sort objects
@@ -153,9 +161,14 @@ public class App {
 
 	public static void main(String[] args) throws Exception {
 		//String ontFile = "/home/simon/Downloads/PO2_core_v1.4.rdf";
+
 		//String objectsFile = "/home/simon/Downloads/Echantillon_PO2_CellExtraDry.rdf";
 		//String objectsFile = "/home/simon/Downloads/PO2_CellExtraDryData.rdf";
-		String objectsFile = "/home/simon/Downloads/PO2_CarredasData.rdf";
+		//String objectsFile = "/home/simon/Downloads/PO2_CarredasData.rdf";
+
+		// v1.5
+		String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CellExtraDry.rdf";
+		//String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CAREDAS_THESE_BOISARD_SIM_CAREDAS_Gierczynski_CAREDAS_LAWRENCE_CAREDAS_MOSCA_CAREDAS_PHAN_CARREDAS_BIGASKI_CARREDAS_LAWRENCE.rdf";
 
 		String processURI = "http://opendata.inra.fr/PO2/cellextradry_process_13";
 		String itineraryURI = "http://opendata.inra.fr/PO2/Itinerary1";
@@ -188,6 +201,26 @@ public class App {
 		OntProperty hasForUnitOfMeasureProp = ontModel.getOntProperty(PO2_NS+"hasForUnitOfMeasure");
 		OntProperty observesProp = ontModel.getOntProperty(PO2_NS+"observes");
 
+		/*{
+			String queryString = prefixes +
+				"SELECT DISTINCT ?interval WHERE {\n" +
+				"	?step rdf:type/rdfs:subClassOf* :step .\n" +
+				"	?step :existsAt ?interval .\n" +
+				"	FILTER NOT EXISTS { [] time:intervalBefore ?interval } .\n" +
+				"}";
+
+			Query query = QueryFactory.create(queryString);
+			try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
+				ResultSet results = qexec.execSelect();
+				while (results.hasNext()) {
+					QuerySolution sol = results.nextSolution();
+					printChildren(intervalBeforeProp, sol.getResource("interval"));
+				}
+			}
+		}
+
+		System.out.println("---");*/
+
 		/*String queryString = prefixes +
 			"SELECT ?x WHERE {\n" +
 			//"	?x rdf:type/rdfs:subClassOf* :step .\n" +
@@ -200,8 +233,8 @@ public class App {
 		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
 			ResultSet results = qexec.execSelect();
 			while (results.hasNext()) {
-				QuerySolution soln = results.nextSolution();
-				Resource r = soln.getResource("x");
+				QuerySolution sol = results.nextSolution();
+				Resource r = sol.getResource("x");
 				System.out.println(r);
 			}
 		}
@@ -223,8 +256,8 @@ public class App {
 			"	?i rdf:type/rdfs:subClassOf* :itinerary .\n" +
 			"	?i :hasForStep ?s .\n" +
 			"	OPTIONAL {\n" +
-			"		?s :hasForMixture/:isComposedOf ?p ." +
-			"		?p :hasForAttribute/:hasForMeasure/<"+isQualityMeasurementOfURI+">/rdf:type ?q ." +
+			"		?s :hasForMixture/:isComposedOf?p ." +
+			"		?p :hasForAttriute/:hasForMeasure/<"+isQualityMeasurementOfURI+">/rdf:type ?q ." +
 			"	} .\n" +
 			"} GROUP BY ?i";*/
 
@@ -244,11 +277,31 @@ public class App {
 			ResultSet results = qexec.execSelect();
 			int i = 0;
 			while (results.hasNext()) {
-				QuerySolution soln = results.nextSolution();
-				System.out.printf("%s\n", soln.getLiteral("n").getString());
-				//System.out.printf("Observations: %s\n", soln.get("no"));
-				//Resource r = soln.getResource("s");
+				QuerySolution sol = results.nextSolution();
+				System.out.printf("%s\n", sol.getLiteral("n").getString());
+				//System.out.printf("Observations: %s\n", sol.get("no"));
+				//Resource r = sol.getResource("s");
 				//System.out.println(r);
+				i++;
+			}
+			System.out.printf("Total: %d\n", i);
+		}
+
+		System.out.println("---");*/
+
+		/*String queryString = prefixes +
+			"SELECT ?r WHERE {\n" +
+			"	?o rdf:type/rdfs:subClassOf* :observation ." +
+			"	?o :computedResult ?r ." +
+			"}";
+
+		Query query = QueryFactory.create(queryString);
+		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
+			ResultSet results = qexec.execSelect();
+			int i = 0;
+			while (results.hasNext()) {
+				QuerySolution sol = results.nextSolution();
+				printProperties(sol.getResource("r"));
 				i++;
 			}
 			System.out.printf("Total: %d\n", i);
@@ -270,20 +323,20 @@ public class App {
 			try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
 				ResultSet results = qexec.execSelect();
 				while (results.hasNext()) {
-					QuerySolution soln = results.nextSolution();
-					steps.put(soln.getResource("i"), soln.getResource("s"));
+					QuerySolution sol = results.nextSolution();
+					steps.put(sol.getResource("i"), sol.getResource("s"));
 				}
 			}
 		}
 
 		List<List<Resource>> intervals = sortObjects(intervalBeforeProp, steps.keySet());
-		// for (List<Resource> list : result) {
+		// for (List<Resource> list : intervals) {
 		// 	for (Resource interval : list) {
 		// 		System.out.println(interval);
 		//
 		// 		StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
 		// 		while (intervalBeforeIter.hasNext()) {
-		// 			System.out.printf("	next: %s\n", intervalBeforeIter.next().getResource());
+		// 			System.out.printf("	%s\n", intervalBeforeIter.next().getResource());
 		// 		}
 		// 	}
 		// 	System.out.printf("\n");
@@ -302,12 +355,11 @@ public class App {
 				itinerarySteps.add(step);
 			}
 
-			Set<String> attributes = new HashSet<>();
+			Set<String> keys = new HashSet<>();
 			List<Map<String, Float>> table = new ArrayList<>();
+			int i = 0;
 			for (List<Resource> list : intervals) {
-				Map<String, Float> row = new HashMap<>();
-				table.add(row);
-
+				int j = 0;
 				for (Resource interval : list) {
 					Resource step = steps.get(interval);
 					if (step == null) {
@@ -318,20 +370,29 @@ public class App {
 						continue;
 					}
 
+					j++;
+
+					Map<String, Float> row = new HashMap<>();
+					table.add(row);
+					row.put("t", (float) i);
+
+					//System.out.printf("	Processing step %s...\n", step);
+					//printProperties(step);
+
 					String queryString = prefixes +
-						"SELECT ?measure ?observation ?mixture ?product WHERE {" +
+						"SELECT ?attribute ?observation ?mixture ?product WHERE {" +
 						"	{" +
 						"		?observation :observedDuring ?step ." +
-						"		?observation :computedResult/:hasForMeasure ?measure ." +
+						"		?observation :computedResult ?attribute ." +
+						"		FILTER NOT EXISTS { ?attribute :isSingularMeasureOf [] } ." +
 						"	} UNION {" +
 						"		?step :hasForMixture ?mixture ." +
-						"		?mixture :hasForAttribute/:hasForMeasure ?measure ." +
+						"		?mixture :hasForAttribute ?attribute ." +
 						"	} UNION {" +
 						"		?step :hasForMixture ?mixture ." +
 						"		?mixture :isComposedOf ?product ." +
-						"		?product :hasForAttribute/:hasForMeasure ?measure ." +
+						"		?product :hasForAttribute ?attribute ." +
 						"	} ." +
-						"	?measure rdf:type/rdfs:subClassOf* :simple_measure ." +
 						"}";
 
 					QuerySolutionMap bindings = new QuerySolutionMap();
@@ -342,22 +403,16 @@ public class App {
 						ResultSet results = qexec.execSelect();
 						while (results.hasNext()) {
 							QuerySolution sol = results.nextSolution();
-							Resource measure = sol.getResource("measure");
+							Resource attribute = sol.getResource("attribute");
 							Resource observation = sol.getResource("observation");
 							Resource mixture = sol.getResource("mixture");
 							Resource product = sol.getResource("product");
 
-							Statement hasForValue = measure.getProperty(hasForValueProp);
-							Statement minKernel = measure.getProperty(minKernelProp);
-							Statement hasForUnitOfMeasure = measure.getProperty(hasForUnitOfMeasureProp);
-							Statement isQualityMeasurementOf = measure.getProperty(isQualityMeasurementOfProp);
+							Statement hasForValue = attribute.getProperty(hasForValueProp);
+							Statement minKernel = attribute.getProperty(minKernelProp);
+							Statement hasForUnitOfMeasure = attribute.getProperty(hasForUnitOfMeasureProp);
 
-							if (isQualityMeasurementOf == null) {
-								System.out.printf("Measure %s has no quality\n", measure);
-								continue;
-							}
-
-							Resource qualityType = isQualityMeasurementOf.getResource().getProperty(RDF.type).getResource();
+							Resource qualityType = attribute.getProperty(RDF.type).getResource();
 
 							String k = compactURI(qualityType.getURI());
 							if (observation != null) {
@@ -369,57 +424,72 @@ public class App {
 								k = ":mixture " + k;
 							}
 
+							// if (hasForValue != null) {
+							// 	System.out.printf("Skipping attribute %s with non-numeric value %s\n", attribute, hasForValue.getString());
+							// 	continue;
+							// }
+
 							String s;
-							if (hasForValue != null) {
-								s = hasForValue.getString();
-							} else if (minKernel != null) {
+							if (minKernel != null) {
 								s = minKernel.getString();
+							} else if (hasForValue != null) {
+								s = hasForValue.getString();
 							} else {
-								System.out.printf("Measure %s has no value\n", measure);
+								System.out.printf("Attribute %s has no value\n", attribute);
 								continue;
 							}
 							s = s.replace(",", "."); // Screw French people
+							if (s.length() > 0 && s.charAt(0) == '[') {
+								// e.g. [384;384]
+								s = s.substring(1, s.indexOf(';'));
+							}
 							float v;
 							try {
-								if (s.length() > 0 && s.charAt(0) == '[') {
-									// e.g. [384;384]
-									s = s.substring(1, s.indexOf(';'));
-								}
 								v = new Float(s);
 							} catch (NumberFormatException e) {
-								System.out.printf("Measure %s has invalid value: %s\n", measure, s);
+								System.out.printf("Attribute %s has invalid value: %s\n", attribute, s);
 								continue;
 							}
 
 							if (row.containsKey(k)) {
+								//printProperties(attribute);
 								System.out.printf("Step %s has duplicate values for %s (theirs: %f, ours: %f)\n", step, k, row.get(k), v);
-								continue;
+								v = Float.NaN;
 							}
 
-							attributes.add(k);
+							keys.add(k);
 							row.put(k, v);
 						}
 					}
 				}
+
+				if (j > 0) {
+					i++;
+				}
 			}
 
-			int maxValues = attributes.size() * table.size();
+			int maxValues = keys.size() * table.size();
 			int nbrValues = 0;
 
 			String name = compactURI(itinerary.getURI()).replace(":", "");
 			try (OutputStream os = new FileOutputStream("output-"+name+".tsv")) {
 				PrintStream ps = new PrintStream(os);
 
-				ps.println(String.join("\t", attributes));
+				ps.println("t\t" + String.join("\t", keys));
 				for (Map<String, Float> row : table) {
 					List<String> values = new ArrayList<>();
-					for (String k : attributes) {
+
+					values.add(row.get("t").toString());
+
+					for (String k : keys) {
 						Float v = row.get(k);
 						if (v == null) {
 							values.add("");
 						} else {
 							values.add(v.toString());
-							nbrValues++;
+							if (!Float.isNaN(v)) {
+								nbrValues++;
+							}
 						}
 					}
 					ps.println(String.join("\t", values));
@@ -427,6 +497,8 @@ public class App {
 			}
 
 			System.out.printf("Values rate: %f\n", (float) nbrValues / (float) maxValues);
+			break;
 		}
+		//*/
 	}
 }
