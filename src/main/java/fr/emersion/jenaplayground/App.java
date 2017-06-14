@@ -39,6 +39,8 @@ import org.apache.jena.util.FileManager;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 
+import fr.emersion.prefixspan.*;
+
 public class App {
 	public static final String PO2_NS = "http://opendata.inra.fr/PO2/";
 	public static final String TIME_NS = "http://www.w3.org/2006/time#";
@@ -51,17 +53,38 @@ public class App {
 		}
 	}
 
-	public static void printChildren(OntProperty prop, Resource interval) {
-		System.out.println(interval);
-		while (true) {
-			Statement stmt = interval.getProperty(prop);
-			if (stmt == null) {
-				break;
-			}
-			interval = stmt.getResource();
-			System.out.printf("	%s\n", interval);
+	public static void printChildren(OntProperty prop, Resource object) {
+		System.out.println(object);
+		StmtIterator stmtIter = object.listProperties(prop);
+		while (stmtIter.hasNext()) {
+			Resource next = stmtIter.next().getResource();
+			System.out.printf("\t%s\n", next);
 		}
-		System.out.printf("\n");
+	}
+
+	// public static void printChildren(OntProperty prop, Resource object) {
+	// 	System.out.println(object);
+	// 	while (true) {
+	// 		Statement stmt = object.getProperty(prop);
+	// 		if (stmt == null) {
+	// 			break;
+	// 		}
+	// 		object = stmt.getResource();
+	// 		System.out.printf("	%s\n", object);
+	// 	}
+	// 	System.out.printf("\n");
+	// }
+
+	public static Collection<Resource> getHeads(OntProperty nextProp, Collection<Resource> objects) {
+		Set<Resource> heads = new HashSet<>(objects);
+		for (Resource object : objects) {
+			StmtIterator stmtIter = object.listProperties(nextProp);
+			while (stmtIter.hasNext()) {
+				Resource next = stmtIter.next().getResource();
+				heads.remove(next);
+			}
+		}
+		return heads;
 	}
 
 	private static void step(Map<Resource, Integer> depths, OntProperty nextProp, Map<Resource, Collection<Resource>> ancestors, Resource object, int lastDepth, int depth) {
@@ -77,7 +100,7 @@ public class App {
 					// Going backward
 					return;
 				}
-			} else if (depth != 0) {
+			} else {
 				// Already explored
 				return;
 			}
@@ -127,8 +150,6 @@ public class App {
 				continue;
 			}
 
-			depths.put(object, 0);
-
 			step(depths, nextProp, ancestors, object, 0, 0);
 		}
 
@@ -155,6 +176,26 @@ public class App {
 		return result;
 	}
 
+	public static List<Map<String, Float>> toGradual(List<Map<String, Float>> table) {
+		List<Map<String, Float>> seq = new ArrayList<>();
+		Map<String, Float> lastRow = new HashMap<>();
+		for (Map<String, Float> row : table) {
+			Map<String, Float> itemset = new HashMap<>();
+			seq.add(itemset);
+
+			for (Map.Entry<String, Float> kv : row.entrySet()) {
+				String k = kv.getKey();
+				float v = kv.getValue();
+
+				if (lastRow.containsKey(k) && lastRow.get(k) != v) {
+					itemset.put(k, lastRow.get(k)/v);
+				}
+				lastRow.put(k, v);
+			}
+		}
+		return seq;
+	}
+
 	public static String compactURI(String uri) {
 		return uri.replace(PO2_NS, ":");
 	}
@@ -169,10 +210,6 @@ public class App {
 		// v1.5
 		String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CellExtraDry.rdf";
 		//String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CAREDAS_THESE_BOISARD_SIM_CAREDAS_Gierczynski_CAREDAS_LAWRENCE_CAREDAS_MOSCA_CAREDAS_PHAN_CARREDAS_BIGASKI_CARREDAS_LAWRENCE.rdf";
-
-		String processURI = "http://opendata.inra.fr/PO2/cellextradry_process_13";
-		String itineraryURI = "http://opendata.inra.fr/PO2/Itinerary1";
-		String stepURI = "http://opendata.inra.fr/PO2/cellextradry_process_13_step_40";
 
 		String isQualityMeasurementOfURI = "http://purl.obolibrary.org/obo/IAO_0000221";
 
@@ -309,14 +346,41 @@ public class App {
 
 		System.out.println("---");*/
 
+		{
+			String queryString = prefixes +
+				"SELECT ?step ?type ?interval WHERE {\n" +
+				"	<http://opendata.inra.fr/PO2/cellextradry_process_2_itinerary_4> :hasForStep ?step ." +
+				"	?step a ?type ." +
+				"	?step :existsAt ?interval ." +
+				"}";
+
+			Query query = QueryFactory.create(queryString);
+			try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
+				ResultSet results = qexec.execSelect();
+				int i = 0;
+				while (results.hasNext()) {
+					QuerySolution sol = results.nextSolution();
+					printProperties(sol.getResource("step"));
+					printProperties(sol.getResource("type"));
+					//printChildren(intervalBeforeProp, sol.getResource("interval"));
+					System.out.println("");
+					i++;
+				}
+				System.out.printf("Total: %d\n", i);
+			}
+		}
+
+		System.out.println("---");
+
+		/*
 		System.out.println("Loading time concept...");
 
 		Map<Resource, Resource> steps = new HashMap<>();
 		{
 			String queryString = prefixes +
-				"SELECT ?s ?i WHERE {\n" +
-				"	?s rdf:type/rdfs:subClassOf* :step .\n" +
-				"	?s :existsAt ?i .\n" +
+				"SELECT ?s ?i WHERE {" +
+				"	?s rdf:type/rdfs:subClassOf* :step ." +
+				"	?s :existsAt ?i ." +
 				"}";
 
 			Query query = QueryFactory.create(queryString);
@@ -330,18 +394,14 @@ public class App {
 		}
 
 		List<List<Resource>> intervals = sortObjects(intervalBeforeProp, steps.keySet());
-		// for (List<Resource> list : intervals) {
-		// 	for (Resource interval : list) {
-		// 		System.out.println(interval);
-		//
-		// 		StmtIterator intervalBeforeIter = interval.listProperties(intervalBeforeProp);
-		// 		while (intervalBeforeIter.hasNext()) {
-		// 			System.out.printf("	%s\n", intervalBeforeIter.next().getResource());
-		// 		}
-		// 	}
-		// 	System.out.printf("\n");
-		// }
+		for (List<Resource> list : intervals) {
+			for (Resource interval : list) {
+				printChildren(intervalBeforeProp, interval);
+			}
+			System.out.printf("\n");
+		}
 
+		/*
 		ResIterator iter = model.listSubjectsWithProperty(RDF.type, itineraryClass);
 		while (iter.hasNext()) {
 			Resource itinerary = iter.next();
@@ -468,6 +528,8 @@ public class App {
 				}
 			}
 
+			table = toGradual(table);
+
 			int maxValues = keys.size() * table.size();
 			int nbrValues = 0;
 
@@ -479,7 +541,8 @@ public class App {
 				for (Map<String, Float> row : table) {
 					List<String> values = new ArrayList<>();
 
-					values.add(row.get("t").toString());
+					//values.add(row.get("t").toString());
+					values.add("");
 
 					for (String k : keys) {
 						Float v = row.get(k);
