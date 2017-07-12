@@ -39,8 +39,6 @@ import org.apache.jena.util.FileManager;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 
-import fr.emersion.prefixspan.*;
-
 public class App {
 	public static final String PO2_NS = "http://opendata.inra.fr/PO2/";
 	public static final String TIME_NS = "http://www.w3.org/2006/time#";
@@ -128,6 +126,49 @@ public class App {
 		}
 	}
 
+	private static void allPathsStep(OntProperty nextProp, Resource object, List<Resource> path, List<List<Resource>> paths) {
+		boolean first = true;
+		List<Resource> truncatedPath = path.subList(0, path.size());
+		StmtIterator stmtIter = object.listProperties(nextProp);
+		while (stmtIter.hasNext()) {
+			Resource next = stmtIter.next().getResource();
+			if (next.equals(object)) {
+				continue;
+			}
+
+			if (first) {
+				allPathsStep(nextProp, next, path, paths);
+				first = false;
+			} else {
+				List<Resource> subPath = new ArrayList<>(truncatedPath);
+				paths.add(subPath);
+				allPathsStep(nextProp, next, subPath, paths);
+			}
+		}
+	}
+
+	// TODO: doesn't work for merges
+	public static List<List<Resource>> allPaths(OntProperty nextProp, Collection<Resource> objects) {
+		// Find roots
+		Set<Resource> roots = new HashSet<>(objects);
+		for (Resource object : objects) {
+			StmtIterator stmtIter = object.listProperties(nextProp);
+			while (stmtIter.hasNext()) {
+				Resource next = stmtIter.next().getResource();
+				roots.remove(next);
+			}
+		}
+
+		// DFS
+		List<List<Resource>> paths = new ArrayList<>();
+		for (Resource root : roots) {
+			List<Resource> path = new ArrayList<>();
+			paths.add(path);
+			allPathsStep(nextProp, root, path, paths);
+		}
+		return paths;
+	}
+
 	public static List<List<Resource>> sortObjects(OntProperty nextProp, Collection<Resource> objects) {
 		// Build a map of ancestors
 		Map<Resource, Collection<Resource>> ancestors = new HashMap<>();
@@ -176,26 +217,6 @@ public class App {
 		return result;
 	}
 
-	public static List<Map<String, Float>> toGradual(List<Map<String, Float>> table) {
-		List<Map<String, Float>> seq = new ArrayList<>();
-		Map<String, Float> lastRow = new HashMap<>();
-		for (Map<String, Float> row : table) {
-			Map<String, Float> itemset = new HashMap<>();
-			seq.add(itemset);
-
-			for (Map.Entry<String, Float> kv : row.entrySet()) {
-				String k = kv.getKey();
-				float v = kv.getValue();
-
-				if (lastRow.containsKey(k) && lastRow.get(k) != v) {
-					itemset.put(k, lastRow.get(k)/v);
-				}
-				lastRow.put(k, v);
-			}
-		}
-		return seq;
-	}
-
 	public static String compactURI(String uri) {
 		return uri.replace(PO2_NS, ":");
 	}
@@ -237,6 +258,7 @@ public class App {
 		OntProperty minKernelProp = ontModel.getOntProperty(PO2_NS+"minKernel");
 		OntProperty hasForUnitOfMeasureProp = ontModel.getOntProperty(PO2_NS+"hasForUnitOfMeasure");
 		OntProperty observesProp = ontModel.getOntProperty(PO2_NS+"observes");
+		OntProperty isSingularMeasureOfProp = ontModel.getOntProperty(PO2_NS+"isSingularMeasureOf");
 
 		/*{
 			String queryString = prefixes +
@@ -346,12 +368,13 @@ public class App {
 
 		System.out.println("---");*/
 
-		{
+		/*{
 			String queryString = prefixes +
-				"SELECT ?step ?type ?interval WHERE {\n" +
+				"SELECT ?step ?type ?interval ?mixture WHERE {" +
 				"	<http://opendata.inra.fr/PO2/cellextradry_process_2_itinerary_4> :hasForStep ?step ." +
 				"	?step a ?type ." +
 				"	?step :existsAt ?interval ." +
+				"	OPTIONAL { ?step :hasForMixture ?mixture } ." +
 				"}";
 
 			Query query = QueryFactory.create(queryString);
@@ -362,6 +385,10 @@ public class App {
 					QuerySolution sol = results.nextSolution();
 					printProperties(sol.getResource("step"));
 					printProperties(sol.getResource("type"));
+					Resource mixture = sol.getResource("mixture");
+					if (mixture != null) {
+						printProperties(mixture);
+					}
 					//printChildren(intervalBeforeProp, sol.getResource("interval"));
 					System.out.println("");
 					i++;
@@ -370,9 +397,8 @@ public class App {
 			}
 		}
 
-		System.out.println("---");
+		System.out.println("---");*/
 
-		/*
 		System.out.println("Loading time concept...");
 
 		Map<Resource, Resource> steps = new HashMap<>();
@@ -401,7 +427,6 @@ public class App {
 			System.out.printf("\n");
 		}
 
-		/*
 		ResIterator iter = model.listSubjectsWithProperty(RDF.type, itineraryClass);
 		while (iter.hasNext()) {
 			Resource itinerary = iter.next();
@@ -444,8 +469,14 @@ public class App {
 						"	{" +
 						"		?observation :observedDuring ?step ." +
 						"		?observation :computedResult ?attribute ." +
+						//"		FILTER NOT EXISTS { ?attribute :isSingularMeasureOf [] } ." +
+						/*"	} UNION {" +
+						"		?step :hasForMixture ?mixture ." +
+						"		?observation :observes ?mixture ." +
+						"		?observation :computedResult ?attribute ." +
+						"		FILTER NOT EXISTS { ?observation :observedDuring ?step } ." +
 						"		FILTER NOT EXISTS { ?attribute :isSingularMeasureOf [] } ." +
-						"	} UNION {" +
+						*/"	} UNION {" +
 						"		?step :hasForMixture ?mixture ." +
 						"		?mixture :hasForAttribute ?attribute ." +
 						"	} UNION {" +
@@ -471,11 +502,14 @@ public class App {
 							Statement hasForValue = attribute.getProperty(hasForValueProp);
 							Statement minKernel = attribute.getProperty(minKernelProp);
 							Statement hasForUnitOfMeasure = attribute.getProperty(hasForUnitOfMeasureProp);
+							Statement isSingularMeasureOf = attribute.getProperty(isSingularMeasureOfProp);
 
 							Resource qualityType = attribute.getProperty(RDF.type).getResource();
 
 							String k = compactURI(qualityType.getURI());
-							if (observation != null) {
+							if (observation != null && mixture != null) {
+								k = ":mixture_observation " + k;
+							} else if (observation != null) {
 								k = ":observation " + k;
 							} else if (product != null) {
 								Resource productType = product.getProperty(RDF.type).getResource();
@@ -512,6 +546,11 @@ public class App {
 							}
 
 							if (row.containsKey(k)) {
+								if (isSingularMeasureOf != null) {
+									// TODO: handle this case
+									continue;
+								}
+
 								//printProperties(attribute);
 								System.out.printf("Step %s has duplicate values for %s (theirs: %f, ours: %f)\n", step, k, row.get(k), v);
 								v = Float.NaN;
@@ -528,8 +567,6 @@ public class App {
 				}
 			}
 
-			table = toGradual(table);
-
 			int maxValues = keys.size() * table.size();
 			int nbrValues = 0;
 
@@ -541,8 +578,8 @@ public class App {
 				for (Map<String, Float> row : table) {
 					List<String> values = new ArrayList<>();
 
-					//values.add(row.get("t").toString());
-					values.add("");
+					values.add(row.get("t").toString());
+					//values.add("");
 
 					for (String k : keys) {
 						Float v = row.get(k);
