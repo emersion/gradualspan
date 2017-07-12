@@ -13,6 +13,17 @@ class Pair<F, S> {
 		return "("+this.first.toString()+", "+this.second.toString()+")";
 	}
 
+	public int hashCode() {
+		int hashCode = 0;
+		if (this.first != null) {
+			hashCode += this.first.hashCode();
+		}
+		if (this.second != null) {
+			hashCode += this.second.hashCode();
+		}
+		return hashCode;
+	}
+
 	public boolean equals(Object other) {
 		if (!(other instanceof Pair)) {
 			return false;

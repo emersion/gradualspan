@@ -9,6 +9,10 @@ public class GradualItem {
 		this.order = order;
 	}
 
+	public int hashCode() {
+		return this.item.hashCode() + this.order.hashCode();
+	}
+
 	public boolean equals(Object other) {
 		if (!(other instanceof GradualItem)) {
 			return false;

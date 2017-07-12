@@ -8,67 +8,40 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class GradualNode {
-	private static class Arrow {
-		// key = gi.item + target
-		private final GradualItem gi;
-		private final GradualNode target;
-
-		private Arrow(GradualItem gi, GradualNode target) {
-			this.gi = gi;
-			this.target = target;
-		}
-
-		@Override
-		public int hashCode() {
-			if (this.gi == null) {
-				return this.target.hashCode();
-			}
-			return this.target.hashCode() + this.gi.item.hashCode();
-		}
-
-		@Override
-		public boolean equals(Object other) {
-			if (!(other instanceof Arrow)) {
-				return false;
-			}
-			Arrow otherArrow = (Arrow) other;
-			if (!this.target.equals(otherArrow.target)) {
-				return false;
-			}
-			if (this.gi == null || otherArrow.gi == null) {
-				return this.gi == null && otherArrow.gi == null;
-			}
-			return this.gi.item.equals(otherArrow.gi.item);
-		}
-	}
-
-	private Set<Arrow> children = new HashSet<>();
+	private Map<GradualNode, Set<GradualItem>> children = new HashMap<>();
 
 	public GradualNode() {}
 
 	public void putChild(GradualItem gi, GradualNode n) {
-		this.children.add(new Arrow(gi, n));
+		if (!this.children.containsKey(n)) {
+			this.children.put(n, new HashSet<>());
+		}
+		this.children.get(n).add(gi);
 	}
 
 	public boolean equals(Object other) {
 		if (!(other instanceof GradualNode)) {
 			return false;
 		}
-		GradualNode gn  = (GradualNode) other;
+		GradualNode n = (GradualNode) other;
 
-		if (this.children.size() != gn.children.size()) {
+		if (this.children.size() != n.children.size()) {
 			return false;
 		}
 
 		// TODO: this can be optimized
-		for (Arrow a1 : this.children) {
+		for (Map.Entry<GradualNode, Set<GradualItem>> e1 : this.children.entrySet()) {
+			GradualNode n1 = e1.getKey();
+			Set<GradualItem> is1 = e1.getValue();
+
 			boolean found = false;
-			for (Arrow a2 : gn.children) {
-				if ((a1.gi == null && a2.gi == null) || (a1.gi != null && a1.gi.equals(a2.gi))) {
-					if (a1.target.equals(a2.target)) {
-						found = true;
-						break;
-					}
+			for (Map.Entry<GradualNode, Set<GradualItem>> e2 : n.children.entrySet()) {
+				GradualNode n2 = e2.getKey();
+				Set<GradualItem> is2 = e2.getValue();
+
+				if (is1.equals(is2) && n1.equals(n2)) {
+					found = true;
+					break;
 				}
 			}
 			if (!found) {
@@ -85,20 +58,9 @@ public class GradualNode {
 
 		String subIndent = indent + "  ";
 
-		Map<GradualNode, List<GradualItem>> childenByNode = new HashMap<>();
-		for (Arrow a : this.children) {
-			GradualItem gi = a.gi;
-			GradualNode child = a.target;
-
-			if (!childenByNode.containsKey(child)) {
-				childenByNode.put(child, new ArrayList<>());
-			}
-			childenByNode.get(child).add(gi);
-		}
-
 		String s = this.hashCode()+"{\n";
-		for (Map.Entry<GradualNode, List<GradualItem>> e : childenByNode.entrySet()) {
-			GradualNode gn = e.getKey();
+		for (Map.Entry<GradualNode, Set<GradualItem>> e : this.children.entrySet()) {
+			GradualNode n = e.getKey();
 
 			s += subIndent;
 			for (GradualItem gi : e.getValue()) {
@@ -110,7 +72,7 @@ public class GradualNode {
 				s += " ";
 			}
 
-			s += gn.toStringWithIndent(subIndent) + "\n";
+			s += n.toStringWithIndent(subIndent) + "\n";
 		}
 		s += indent+"}";
 		return s;
