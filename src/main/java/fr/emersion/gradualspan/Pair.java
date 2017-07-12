@@ -1,5 +1,7 @@
 package fr.emersion.gradualspan;
 
+import java.util.Objects;
+
 class Pair<F, S> {
 	public final F first;
 	public final S second;
@@ -14,14 +16,7 @@ class Pair<F, S> {
 	}
 
 	public int hashCode() {
-		int hashCode = 0;
-		if (this.first != null) {
-			hashCode += this.first.hashCode();
-		}
-		if (this.second != null) {
-			hashCode += this.second.hashCode();
-		}
-		return hashCode;
+		return Objects.hash(this.first, this.second);
 	}
 
 	public boolean equals(Object other) {
@@ -30,20 +25,6 @@ class Pair<F, S> {
 		}
 
 		Pair<?, ?> pair = (Pair<?, ?>) other;
-		if (this.first != null && pair.first != null) {
-			if (!this.first.equals(pair.first)) {
-				return false;
-			}
-		} else if (this.first == null || pair.first == null) {
-			return false;
-		}
-		if (this.second != null && pair.second != null) {
-			if (!this.second.equals(pair.second)) {
-				return false;
-			}
-		} else if (this.second == null || pair.second == null) {
-			return false;
-		}
-		return true;
+		return Objects.equals(this.first, pair.first) && Objects.equals(this.second, pair.second);
 	}
 }
