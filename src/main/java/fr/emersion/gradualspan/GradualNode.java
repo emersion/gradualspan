@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class GradualNode {
-	private Map<GradualNode, Set<GradualItem>> children = new HashMap<>();
+	protected Map<GradualNode, Set<GradualItem>> children = new HashMap<>();
 
 	public GradualNode() {}
 

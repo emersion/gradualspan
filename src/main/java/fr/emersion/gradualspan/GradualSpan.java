@@ -1,8 +1,10 @@
 package fr.emersion.gradualspan;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 
 public class GradualSpan {
 	public static GradualNode valuedToGradual(ValuedSequence vs) {
@@ -53,17 +55,24 @@ public class GradualSpan {
 		return null; // TODO
 	}
 
-	/*private static Map<GradualItem, Integer> listOccurences(List<GradualNode> db) {
+	public static Map<GradualItem, Integer> listOccurences(List<GradualNode> db, int minSupport) {
 		Map<GradualItem, Integer> occurences = new HashMap<>();
 		for (GradualNode seq : db) {
 			listSequenceOccurences(seq, occurences, new ArrayList<>());
 		}
+
+		for (Map.Entry<GradualItem, Integer> occ : occurences.entrySet()) {
+			if (occ.getValue() < minSupport) {
+				occurences.remove(occ.getKey());
+			}
+		}
+
 		return occurences;
 	}
 
 	private static void listSequenceOccurences(GradualNode n, Map<GradualItem, Integer> occurences, List<GradualItem> path) {
 		if (n.children.size() == 0) {
-			for (GradualNode step : path) {
+			for (GradualItem step : path) {
 				if (!occurences.containsKey(step)) {
 					occurences.put(step, 0);
 				}
@@ -72,18 +81,22 @@ public class GradualSpan {
 			return;
 		}
 
-		for (GradualNode.Arrow a : n.children) {
-			List<GradualItem> subPath = path;
-			if (a.gi != null) {
-				subPath = copyList(path);
-				subPath.add(a.gi);
+		for (Map.Entry<GradualNode, Set<GradualItem>> e : n.children.entrySet()) {
+			GradualNode child = e.getKey();
+			Set<GradualItem> is = e.getValue();
+
+			List<GradualItem> subPath = copyList(path);
+			for (GradualItem i : is) {
+				if (i != null) {
+					subPath.add(i);
+				}
 			}
-			listSequenceOccurences(a.target, );
+			listSequenceOccurences(child, occurences, subPath);
 		}
 	}
 
 	private static<E> List<E> copyList(List<E> list) {
 		// TODO: use a more efficient data structure
 		return new ArrayList<>(list);
-	}*/
+	}
 }
