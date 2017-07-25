@@ -61,10 +61,15 @@ public class GradualSpan {
 			listSequenceOccurences(seq, occurences, new ArrayList<>());
 		}
 
+		// Two passes are needed to prevent java.util.ConcurrentModificationException
+		List<GradualItem> removed = new ArrayList<>();
 		for (Map.Entry<GradualItem, Integer> occ : occurences.entrySet()) {
 			if (occ.getValue() < minSupport) {
-				occurences.remove(occ.getKey());
+				removed.add(occ.getKey());
 			}
+		}
+		for (GradualItem k : removed) {
+			occurences.remove(k);
 		}
 
 		return occurences;
