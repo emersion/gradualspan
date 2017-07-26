@@ -178,19 +178,34 @@ public class GradualSpanTest extends TestCase {
 		GradualNode gs = GradualSpan.valuedToGradual(vs);
 		//System.out.println(gs);
 		//System.out.println(expected);
-		assertEquals(gs, expected);
+		assertEquals(expected, gs);
+	}
+
+	// Only checks support in equals
+	// TODO: check projected too
+	private static class Occurence extends GradualSpan.Occurence {
+		public boolean equals(Object other) {
+			if (!(other instanceof GradualSpan.Occurence)) {
+				return false;
+			}
+			GradualSpan.Occurence occ = (GradualSpan.Occurence) other;
+			return this.support == occ.support;
+		}
 	}
 
 	public void testListOccurences() {
 		List<GradualNode> db = gradualDB();
 		int minSupport = 2;
 
-		Map<GradualItem, Integer> occurences = GradualSpan.listOccurences(db, minSupport);
+		Map<GradualItem, GradualSpan.Occurence> occurences = GradualSpan.listOccurences(db, minSupport);
 		//System.out.println(occurences);
 
-		Map<GradualItem, Integer> expected = new HashMap<>();
-		expected.put(new GradualItem(a, GradualOrder.GREATER), 2);
+		Map<GradualItem, GradualSpan.Occurence> expected = new HashMap<>();
+		GradualSpan.Occurence occ = new Occurence();
+		occ.support = 2;
+		// TODO: occ.projected
+		expected.put(new GradualItem(a, GradualOrder.GREATER), occ);
 
-		assertEquals(occurences, expected);
+		assertEquals(expected, occurences);
 	}
 }
