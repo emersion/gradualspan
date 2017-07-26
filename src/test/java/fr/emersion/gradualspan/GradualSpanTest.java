@@ -208,4 +208,22 @@ public class GradualSpanTest extends TestCase {
 
 		assertEquals(expected, occurences);
 	}
+
+	public void testForwardTreeMining() {
+		List<GradualNode> db = gradualDB();
+		int minSupport = 2;
+
+		List<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport);
+		//System.out.println(patterns);
+
+		List<GradualNode> expected = new ArrayList<>();
+
+		GradualNode gn = new GradualNode();
+		expected.add(gn);
+
+		GradualNode gn1_1 = new GradualNode();
+		gn.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+
+		assertEquals(expected, patterns);
+	}
 }

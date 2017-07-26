@@ -59,6 +59,7 @@ public class GradualSpan {
 		Map<GradualNode, List<GradualNode>> projected = new HashMap<>();
 
 		GradualNode pattern = new GradualNode();
+		result.add(pattern);
 		projected.put(pattern, db);
 
 		int upperSupport = db.size(); // TODO: support mode
