@@ -55,6 +55,10 @@ public class GradualSpan {
 	}
 
 	public static List<GradualNode> forwardTreeMining(List<GradualNode> db, int minSupport) {
+		return forwardTreeMining(db, minSupport, new HashSet<>());
+	}
+
+	private static List<GradualNode> forwardTreeMining(List<GradualNode> db, int minSupport, Set<Set<GradualNode>> mined) {
 		List<GradualNode> result = new ArrayList<>();
 		Map<GradualNode, List<GradualNode>> projected = new HashMap<>();
 
@@ -92,8 +96,13 @@ public class GradualSpan {
 				}
 
 				List<GradualNode> subDB = cover(db, e.getKey()); // TODO: support mode
-				// TODO: check if subDB is in mined
-				List<GradualNode> subResult = forwardTreeMining(subDB, minSupport);
+				Set<GradualNode> subSet = new HashSet<>(subDB);
+				if (mined.contains(subSet)) {
+					continue; // Already mined
+				}
+				mined.add(subSet);
+
+				List<GradualNode> subResult = forwardTreeMining(subDB, minSupport, mined);
 				result.addAll(subResult);
 			}
 		}
