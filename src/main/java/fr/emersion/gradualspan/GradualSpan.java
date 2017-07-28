@@ -1,13 +1,14 @@
 package fr.emersion.gradualspan;
 
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.Set;
-import java.util.Queue;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 public class GradualSpan {
 	public static GradualNode valuedToGradual(ValuedSequence vs) {
@@ -54,13 +55,13 @@ public class GradualSpan {
 		return s;
 	}
 
-	public static List<GradualNode> forwardTreeMining(List<GradualNode> db, int minSupport) {
+	public static Collection<GradualNode> forwardTreeMining(Collection<GradualNode> db, int minSupport) {
 		return forwardTreeMining(db, minSupport, new HashSet<>());
 	}
 
-	private static List<GradualNode> forwardTreeMining(List<GradualNode> db, int minSupport, Set<Set<GradualNode>> mined) {
-		List<GradualNode> result = new ArrayList<>();
-		Map<GradualNode, List<GradualNode>> projected = new HashMap<>();
+	private static Collection<GradualNode> forwardTreeMining(Collection<GradualNode> db, int minSupport, Set<Set<GradualNode>> mined) {
+		Collection<GradualNode> result = new ArrayList<>();
+		Map<GradualNode, Collection<GradualNode>> projected = new HashMap<>();
 
 		GradualNode pattern = new GradualNode();
 		result.add(pattern);
@@ -95,14 +96,14 @@ public class GradualSpan {
 					continue;
 				}
 
-				List<GradualNode> subDB = cover(db, e.getKey()); // TODO: support mode
+				Collection<GradualNode> subDB = cover(db, e.getKey()); // TODO: support mode
 				Set<GradualNode> subSet = new HashSet<>(subDB);
 				if (mined.contains(subSet)) {
 					continue; // Already mined
 				}
 				mined.add(subSet);
 
-				List<GradualNode> subResult = forwardTreeMining(subDB, minSupport, mined);
+				Collection<GradualNode> subResult = forwardTreeMining(subDB, minSupport, mined);
 				result.addAll(subResult);
 			}
 		}
@@ -112,7 +113,7 @@ public class GradualSpan {
 
 	public static class Occurence {
 		public int support = 0;
-		public final List<GradualNode> projected = new ArrayList<>();
+		public final Collection<GradualNode> projected = new ArrayList<>();
 
 		public boolean equals(Object other) {
 			if (!(other instanceof Occurence)) {
@@ -125,7 +126,7 @@ public class GradualSpan {
 
 	// Support mode: sequence
 
-	public static Map<GradualItem, Occurence> listOccurences(List<GradualNode> db, int minSupport) {
+	public static Map<GradualItem, Occurence> listOccurences(Collection<GradualNode> db, int minSupport) {
 		Map<GradualItem, Occurence> occurences = new HashMap<>();
 		for (GradualNode seq : db) {
 			listSequenceOccurences(seq, occurences, new HashSet<>());
@@ -169,8 +170,8 @@ public class GradualSpan {
 		}
 	}
 
-	public static List<GradualNode> cover(List<GradualNode> db, GradualItem item) {
-		List<GradualNode> subDB = new ArrayList<>();
+	public static Collection<GradualNode> cover(Collection<GradualNode> db, GradualItem item) {
+		Collection<GradualNode> subDB = new ArrayList<>();
 		for (GradualNode n : db) {
 			if (itemInSequence(n, item)) {
 				subDB.add(n);
@@ -196,7 +197,7 @@ public class GradualSpan {
 
 	// Support mode: path
 
-	/*public static Map<GradualItem, Integer> listOccurences(List<GradualNode> db, int minSupport) {
+	/*public static Map<GradualItem, Integer> listOccurences(Collection<GradualNode> db, int minSupport) {
 		Map<GradualItem, Integer> occurences = new HashMap<>();
 		for (GradualNode seq : db) {
 			listSequenceOccurences(seq, occurences, new ArrayList<>());

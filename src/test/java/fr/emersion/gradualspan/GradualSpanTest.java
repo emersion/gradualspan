@@ -5,6 +5,7 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -79,7 +80,7 @@ public class GradualSpanTest extends TestCase {
 		return gn;
 	}
 
-	private List<GradualNode> gradualDBSmall() {
+	private Collection<GradualNode> gradualDBSmall() {
 		List<GradualNode> db = new ArrayList<>();
 
 		db.add(gradualSequence());
@@ -97,7 +98,7 @@ public class GradualSpanTest extends TestCase {
 		return db;
 	}
 
-	private List<GradualNode> gradualDB() {
+	private Collection<GradualNode> gradualDB() {
 		List<GradualNode> db = new ArrayList<>();
 
 		{
@@ -253,7 +254,7 @@ public class GradualSpanTest extends TestCase {
 	}
 
 	public void testListOccurences() {
-		List<GradualNode> db = gradualDBSmall();
+		Collection<GradualNode> db = gradualDBSmall();
 		int minSupport = 2;
 
 		Map<GradualItem, GradualSpan.Occurence> occurences = GradualSpan.listOccurences(db, minSupport);
@@ -268,11 +269,11 @@ public class GradualSpanTest extends TestCase {
 		assertEquals(expected, occurences);
 	}
 
-	/*public void testForwardTreeMiningSmall() {
-		List<GradualNode> db = gradualDBSmall();
+	public void testForwardTreeMiningSmall() {
+		Collection<GradualNode> db = gradualDBSmall();
 		int minSupport = 2;
 
-		List<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport);
+		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport);
 		//System.out.println(patterns);
 
 		List<GradualNode> expected = new ArrayList<>();
@@ -284,13 +285,13 @@ public class GradualSpanTest extends TestCase {
 		gn.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
 
 		assertEquals(expected, patterns);
-	}*/
+	}
 
 	public void testForwardTreeMining() {
-		List<GradualNode> db = gradualDB();
+		Collection<GradualNode> db = gradualDB();
 		int minSupport = 2;
 
-		List<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport);
+		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport);
 		//System.out.println(patterns);
 
 		List<GradualNode> expected = new ArrayList<>();
