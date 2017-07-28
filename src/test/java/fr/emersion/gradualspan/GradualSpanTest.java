@@ -243,25 +243,27 @@ public class GradualSpanTest extends TestCase {
 
 	// Only checks support in equals
 	// TODO: check projected too
-	private static class Occurence extends GradualSpan.Occurence {
+	private static class Occurence extends GradualSupport.Occurence {
 		public boolean equals(Object other) {
-			if (!(other instanceof GradualSpan.Occurence)) {
+			if (!(other instanceof GradualSupport.Occurence)) {
 				return false;
 			}
-			GradualSpan.Occurence occ = (GradualSpan.Occurence) other;
+			GradualSupport.Occurence occ = (GradualSupport.Occurence) other;
 			return this.support == occ.support;
 		}
 	}
 
-	public void testListOccurences() {
+	public void testListOccurencesBySequence() {
+		GradualSupport support = new GradualSupport.BySequence();
+
 		Collection<GradualNode> db = gradualDBSmall();
 		int minSupport = 2;
 
-		Map<GradualItem, GradualSpan.Occurence> occurences = GradualSpan.listOccurences(db, minSupport);
+		Map<GradualItem, GradualSupport.Occurence> occurences = support.listOccurences(db, minSupport);
 		//System.out.println(occurences);
 
-		Map<GradualItem, GradualSpan.Occurence> expected = new HashMap<>();
-		GradualSpan.Occurence occ = new Occurence();
+		Map<GradualItem, GradualSupport.Occurence> expected = new HashMap<>();
+		GradualSupport.Occurence occ = new Occurence();
 		occ.support = 2;
 		// TODO: occ.projected
 		expected.put(new GradualItem(a, GradualOrder.GREATER), occ);
@@ -273,7 +275,7 @@ public class GradualSpanTest extends TestCase {
 		Collection<GradualNode> db = gradualDBSmall();
 		int minSupport = 2;
 
-		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport);
+		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
 		//System.out.println(patterns);
 
 		List<GradualNode> expected = new ArrayList<>();
@@ -291,7 +293,7 @@ public class GradualSpanTest extends TestCase {
 		Collection<GradualNode> db = gradualDB();
 		int minSupport = 2;
 
-		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport);
+		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
 		//System.out.println(patterns);
 
 		List<GradualNode> expected = new ArrayList<>();
