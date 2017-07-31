@@ -11,7 +11,7 @@ import java.util.Set;
 public interface GradualSupport {
 	public static class Occurence {
 		public int support = 0;
-		public final Collection<GradualNode> projected = new ArrayList<>();
+		public final Collection<GradualSequence> projected = new ArrayList<>();
 
 		public boolean equals(Object other) {
 			if (!(other instanceof Occurence)) {
@@ -22,19 +22,19 @@ public interface GradualSupport {
 		}
 	}
 
-	public int size(Collection<GradualNode> db);
-	public Map<GradualItem, Occurence> listOccurences(Collection<GradualNode> db, int minSupport);
-	public Collection<GradualNode> cover(Collection<GradualNode> db, GradualItem item);
+	public int size(Collection<GradualSequence> db);
+	public Map<GradualItem, Occurence> listOccurences(Collection<GradualSequence> db, int minSupport);
+	public Collection<GradualSequence> cover(Collection<GradualSequence> db, GradualItem item);
 
 	public static class BySequence implements GradualSupport {
-		public int size(Collection<GradualNode> db) {
+		public int size(Collection<GradualSequence> db) {
 			return db.size();
 		}
 
-		public Map<GradualItem, Occurence> listOccurences(Collection<GradualNode> db, int minSupport) {
+		public Map<GradualItem, Occurence> listOccurences(Collection<GradualSequence> db, int minSupport) {
 			Map<GradualItem, Occurence> occurences = new HashMap<>();
-			for (GradualNode seq : db) {
-				listSequenceOccurences(seq, occurences, new HashSet<>());
+			for (GradualSequence seq : db) {
+				listSequenceOccurences(seq.begin, occurences, new HashSet<>());
 			}
 
 			// Two passes are needed to prevent java.util.ConcurrentModificationException
@@ -66,7 +66,7 @@ public interface GradualSupport {
 								occurences.put(i, occ);
 							}
 							occ.support++;
-							occ.projected.add(child);
+							occ.projected.add(new GradualSequence(child));
 							visited.add(i);
 						}
 					}
@@ -75,11 +75,11 @@ public interface GradualSupport {
 			}
 		}
 
-		public Collection<GradualNode> cover(Collection<GradualNode> db, GradualItem item) {
-			Collection<GradualNode> subDB = new ArrayList<>();
-			for (GradualNode n : db) {
-				if (itemInSequence(n, item)) {
-					subDB.add(n);
+		public Collection<GradualSequence> cover(Collection<GradualSequence> db, GradualItem item) {
+			Collection<GradualSequence> subDB = new ArrayList<>();
+			for (GradualSequence seq : db) {
+				if (itemInSequence(seq.begin, item)) {
+					subDB.add(seq);
 				}
 			}
 			return subDB;

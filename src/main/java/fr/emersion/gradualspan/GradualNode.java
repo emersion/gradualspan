@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class GradualNode {
+	protected Set<GradualNode> parents = new HashSet<>();
 	protected Map<GradualNode, Set<GradualItem>> children = new HashMap<>();
 
 	public GradualNode() {}
@@ -17,6 +19,8 @@ public class GradualNode {
 			this.children.put(n, new HashSet<>());
 		}
 		this.children.get(n).add(gi);
+
+		n.parents.add(this);
 	}
 
 	public boolean equals(Object other) {

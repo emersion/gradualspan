@@ -11,13 +11,14 @@ import java.util.Queue;
 import java.util.Set;
 
 public class GradualSpan {
-	public static GradualNode valuedToGradual(ValuedSequence vs) {
-		GradualNode gn = new GradualNode();
+	public static GradualSequence valuedToGradual(ValuedSequence vs) {
+		GradualSequence gs = new GradualSequence();
 		for (ValuedItemset vis : vs.root()) {
-			GradualNode gnChild = valuedNodeToGradual(vis, gn, new HashMap<>());
-			gn.putChild(null, gnChild);
+			GradualNode gnChild = valuedNodeToGradual(vis, gs.begin, new HashMap<>());
+			gs.begin.putChild(null, gnChild);
 		}
-		return gn;
+		gs.close();
+		return gs;
 	}
 
 	private static GradualNode valuedNodeToGradual(ValuedItemset vis, GradualNode prev, Map<Object, Pair<ValuedItem, GradualNode>> last) {
@@ -55,22 +56,22 @@ public class GradualSpan {
 		return s;
 	}
 
-	public static Collection<GradualNode> forwardTreeMining(Collection<GradualNode> db, int minSupport, GradualSupport support) {
+	public static Collection<GradualSequence> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support) {
 		return forwardTreeMining(db, minSupport, support, new HashSet<>());
 	}
 
-	private static Collection<GradualNode> forwardTreeMining(Collection<GradualNode> db, int minSupport, GradualSupport support, Set<Set<GradualNode>> mined) {
-		Collection<GradualNode> result = new ArrayList<>();
-		Map<GradualNode, Collection<GradualNode>> projected = new HashMap<>();
+	private static Collection<GradualSequence> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support, Set<Set<GradualSequence>> mined) {
+		Collection<GradualSequence> result = new ArrayList<>();
+		Map<GradualNode, Collection<GradualSequence>> projected = new HashMap<>();
 
-		GradualNode pattern = new GradualNode();
+		GradualSequence pattern = new GradualSequence();
 		result.add(pattern);
-		projected.put(pattern, db);
+		projected.put(pattern.begin, db);
 
 		int upperSupport = support.size(db);
 
 		Queue<GradualNode> nodeQueue = new LinkedList<>();
-		nodeQueue.add(pattern);
+		nodeQueue.add(pattern.begin);
 
 		while (true) {
 			GradualNode node = nodeQueue.poll();
@@ -96,18 +97,24 @@ public class GradualSpan {
 					continue;
 				}
 
-				Collection<GradualNode> subDB = support.cover(db, e.getKey());
-				Set<GradualNode> subSet = new HashSet<>(subDB);
+				Collection<GradualSequence> subDB = support.cover(db, e.getKey());
+				Set<GradualSequence> subSet = new HashSet<>(subDB);
 				if (mined.contains(subSet)) {
 					continue; // Already mined
 				}
 				mined.add(subSet);
 
-				Collection<GradualNode> subResult = forwardTreeMining(subDB, minSupport, support, mined);
+				Collection<GradualSequence> subResult = forwardTreeMining(subDB, minSupport, support, mined);
 				result.addAll(subResult);
 			}
 		}
 
+		pattern.close();
+
 		return result;
+	}
+
+	public static void mergingSuffixTree(GradualSequence seq) {
+		// TODO
 	}
 }

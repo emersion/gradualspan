@@ -55,14 +55,14 @@ public class GradualSpanTest extends TestCase {
 		return vs;
 	}
 
-	private GradualNode gradualSequence() {
-		GradualNode gn = new GradualNode();
+	private GradualSequence gradualSequence() {
+		GradualSequence gs = new GradualSequence();
 
 		GradualNode gn1_1 = new GradualNode();
-		gn.putChild(null, gn1_1);
+		gs.begin.putChild(null, gn1_1);
 
 		GradualNode gn1_2 = new GradualNode();
-		gn.putChild(null, gn1_2);
+		gs.begin.putChild(null, gn1_2);
 
 		GradualNode gn2_1 = new GradualNode();
 		gn1_1.putChild(null, gn2_1);
@@ -77,36 +77,40 @@ public class GradualSpanTest extends TestCase {
 		gn1_2.putChild(new GradualItem(b, GradualOrder.EQUAL), gn2_3);
 		gn1_2.putChild(new GradualItem(c, GradualOrder.GREATER), gn2_3);
 
-		return gn;
+		gs.close();
+
+		return gs;
 	}
 
-	private Collection<GradualNode> gradualDBSmall() {
-		List<GradualNode> db = new ArrayList<>();
+	private Collection<GradualSequence> gradualDBSmall() {
+		List<GradualSequence> db = new ArrayList<>();
 
 		db.add(gradualSequence());
 
-		GradualNode gn = new GradualNode();
-		db.add(gn);
+		GradualSequence gs = new GradualSequence();
+		db.add(gs);
 
 		GradualNode gn1_1 = new GradualNode();
-		gn.putChild(null, gn1_1);
+		gs.begin.putChild(null, gn1_1);
 
 		GradualNode gn2_1 = new GradualNode();
 		gn1_1.putChild(null, gn2_1);
 		gn1_1.putChild(new GradualItem(a, GradualOrder.GREATER), gn2_1);
 
+		gs.close();
+
 		return db;
 	}
 
-	private Collection<GradualNode> gradualDB() {
-		List<GradualNode> db = new ArrayList<>();
+	private Collection<GradualSequence> gradualDB() {
+		List<GradualSequence> db = new ArrayList<>();
 
 		{
-			GradualNode gn = new GradualNode();
-			db.add(gn);
+			GradualSequence gs = new GradualSequence();
+			db.add(gs);
 
 			GradualNode gn1_1 = new GradualNode();
-			gn.putChild(null, gn1_1);
+			gs.begin.putChild(null, gn1_1);
 
 			GradualNode gn2_1 = new GradualNode();
 			gn1_1.putChild(null, gn2_1);
@@ -119,14 +123,16 @@ public class GradualSpanTest extends TestCase {
 			GradualNode gn3_2 = new GradualNode();
 			gn2_1.putChild(null, gn3_2);
 			gn2_1.putChild(new GradualItem(c, GradualOrder.LOWER), gn3_2);
+
+			gs.close();
 		}
 
 		{
-			GradualNode gn = new GradualNode();
-			db.add(gn);
+			GradualSequence gs = new GradualSequence();
+			db.add(gs);
 
 			GradualNode gn1_1 = new GradualNode();
-			gn.putChild(null, gn1_1);
+			gs.begin.putChild(null, gn1_1);
 
 			GradualNode gn2_1 = new GradualNode();
 			gn1_1.putChild(null, gn2_1);
@@ -139,18 +145,22 @@ public class GradualSpanTest extends TestCase {
 			GradualNode gn3_2 = new GradualNode();
 			gn2_1.putChild(null, gn3_2);
 			gn2_1.putChild(new GradualItem(c, GradualOrder.EQUAL), gn3_2);
+
+			gs.close();
 		}
 
 		{
-			GradualNode gn = new GradualNode();
-			db.add(gn);
+			GradualSequence gs = new GradualSequence();
+			db.add(gs);
 
 			GradualNode gn1_1 = new GradualNode();
-			gn.putChild(null, gn1_1);
+			gs.begin.putChild(null, gn1_1);
 
 			GradualNode gn2_1 = new GradualNode();
 			gn1_1.putChild(null, gn2_1);
 			gn1_1.putChild(new GradualItem(a, GradualOrder.GREATER), gn2_1);
+
+			gs.close();
 		}
 
 		return db;
@@ -233,9 +243,9 @@ public class GradualSpanTest extends TestCase {
 
 	public void testValuedToGradual() {
 		ValuedSequence vs = valuedSequence();
-		GradualNode expected = gradualSequence();
+		GradualSequence expected = gradualSequence();
 		//System.out.println(vs);
-		GradualNode gs = GradualSpan.valuedToGradual(vs);
+		GradualSequence gs = GradualSpan.valuedToGradual(vs);
 		//System.out.println(gs);
 		//System.out.println(expected);
 		assertEquals(expected, gs);
@@ -256,7 +266,7 @@ public class GradualSpanTest extends TestCase {
 	public void testListOccurencesBySequence() {
 		GradualSupport support = new GradualSupport.BySequence();
 
-		Collection<GradualNode> db = gradualDBSmall();
+		Collection<GradualSequence> db = gradualDBSmall();
 		int minSupport = 2;
 
 		Map<GradualItem, GradualSupport.Occurence> occurences = support.listOccurences(db, minSupport);
@@ -272,52 +282,58 @@ public class GradualSpanTest extends TestCase {
 	}
 
 	public void testForwardTreeMiningSmall() {
-		Collection<GradualNode> db = gradualDBSmall();
+		Collection<GradualSequence> db = gradualDBSmall();
 		int minSupport = 2;
 
-		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
+		Collection<GradualSequence> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
 		//System.out.println(patterns);
 
-		List<GradualNode> expected = new ArrayList<>();
+		List<GradualSequence> expected = new ArrayList<>();
 
-		GradualNode gn = new GradualNode();
-		expected.add(gn);
+		GradualSequence gs = new GradualSequence();
+		expected.add(gs);
 
 		GradualNode gn1_1 = new GradualNode();
-		gn.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+		gs.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+
+		gs.close();
 
 		assertEquals(expected, patterns);
 	}
 
 	public void testForwardTreeMining() {
-		Collection<GradualNode> db = gradualDB();
+		Collection<GradualSequence> db = gradualDB();
 		int minSupport = 2;
 
-		Collection<GradualNode> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
+		Collection<GradualSequence> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
 		//System.out.println(patterns);
 
-		List<GradualNode> expected = new ArrayList<>();
+		List<GradualSequence> expected = new ArrayList<>();
 
 		{
-			GradualNode gn = new GradualNode();
-			expected.add(gn);
+			GradualSequence gs = new GradualSequence();
+			expected.add(gs);
 
 			GradualNode gn1_1 = new GradualNode();
-			gn.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+			gs.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+
+			gs.close();
 		}
 
 		{
-			GradualNode gn = new GradualNode();
-			expected.add(gn);
+			GradualSequence gs = new GradualSequence();
+			expected.add(gs);
 
 			GradualNode gn1_1 = new GradualNode();
-			gn.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+			gs.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
 
 			GradualNode gn1_2 = new GradualNode();
-			gn.putChild(new GradualItem(b, GradualOrder.GREATER), gn1_2);
+			gs.begin.putChild(new GradualItem(b, GradualOrder.GREATER), gn1_2);
 
 			GradualNode gn2_1 = new GradualNode();
 			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), gn2_1);
+
+			gs.close();
 		}
 
 		assertEquals(expected, patterns);
