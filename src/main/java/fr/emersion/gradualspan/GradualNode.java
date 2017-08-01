@@ -57,7 +57,7 @@ public class GradualNode {
 
 	private String toStringWithIndent(String indent) {
 		if (this.children.size() == 0) {
-			return "{}";
+			return this.hashCode()+"{}";
 		}
 
 		String subIndent = indent + "  ";

@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
@@ -115,6 +116,115 @@ public class GradualSpan {
 	}
 
 	public static void mergingSuffixTree(GradualSequence seq) {
-		// TODO
+		mergingSuffixNode(seq.end);
+	}
+
+	private static void mergingSuffixNode(GradualNode node) {
+		// Group predecessors by arrow label
+		Map<GradualItem, Set<GradualNode>> predecessors = new HashMap<>();
+		for (GradualNode parent : node.parents) {
+			Set<GradualItem> items = parent.children.get(node);
+			for (GradualItem gi : items) {
+				if (!predecessors.containsKey(gi)) {
+					predecessors.put(gi, new HashSet<>());
+				}
+				predecessors.get(gi).add(parent);
+			}
+		}
+
+		// Split each group in subgroups of unordered nodes
+		for (Map.Entry<GradualItem, Set<GradualNode>> e : predecessors.entrySet()) {
+			GradualItem item = e.getKey();
+			Set<GradualNode> nodes = e.getValue();
+
+			List<Set<GradualNode>> subGroups = new ArrayList<>();
+			for (GradualNode n : nodes) {
+				boolean added = false;
+				for (Set<GradualNode> subGroup : subGroups) {
+					if (isUnorderedNode(subGroup, n)) {
+						subGroup.add(n);
+						added = true;
+						break;
+					}
+				}
+
+				if (!added) {
+					Set<GradualNode> subGroup = new HashSet<>();
+					subGroup.add(n);
+					subGroups.add(subGroup);
+				}
+			}
+
+			// Merge nodes in sub-groups
+			for (Set<GradualNode> subGroup : subGroups) {
+				GradualNode merged = mergeNodes(subGroup);
+				merged.putChild(item, node);
+
+				// Add children to merged node
+				for (GradualNode n : subGroup) {
+					for (Map.Entry<GradualNode, Set<GradualItem>> childEntry : n.children.entrySet()) {
+						GradualNode child = childEntry.getKey();
+						Set<GradualItem> childItems = childEntry.getValue();
+
+						for (GradualItem gi : childItems) {
+							if (Objects.equals(gi, item)) {
+								continue;
+							}
+
+							merged.putChild(gi, child);
+						}
+					}
+				}
+			}
+		}
+
+		// Recursive call on parents
+		for (GradualNode parent : new ArrayList<>(node.parents)) {
+			mergingSuffixNode(parent);
+		}
+	}
+
+	private static boolean isUnorderedNode(Set<GradualNode> set, GradualNode node) {
+		return !hasChild(set, node) && !hasParent(set, node);
+	}
+
+	private static boolean hasChild(Set<GradualNode> set, GradualNode node) {
+		for (GradualNode child : node.children.keySet()) {
+			if (set.contains(child) || hasChild(set, child)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasParent(Set<GradualNode> set, GradualNode node) {
+		for (GradualNode parent : node.parents) {
+			if (set.contains(parent) || hasParent(set, parent)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Creates a new merged node from nodes such that all parents of each node
+	 * points to the new merged node.
+	 */
+	private static GradualNode mergeNodes(Set<GradualNode> nodes) {
+		GradualNode merged = new GradualNode();
+
+		for (GradualNode n : nodes) {
+			for (GradualNode p : n.parents) {
+				Set<GradualItem> items = p.children.get(n);
+				p.children.remove(n);
+
+				for (GradualItem item : items) {
+					p.putChild(item, merged);
+				}
+			}
+			n.parents.clear();
+		}
+
+		return merged;
 	}
 }

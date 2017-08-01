@@ -58,4 +58,8 @@ public class GradualSequence {
 	public int hashCode() {
 		return Objects.hash(this.begin, this.end);
 	}
+
+	public String toString() {
+		return this.begin.toString();
+	}
 }
