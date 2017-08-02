@@ -12,6 +12,21 @@ import java.util.Queue;
 import java.util.Set;
 
 public class GradualSpan {
+	public static Collection<GradualSequence> gradualSpan(Iterable<ValuedSequence> dbv, int minSupport, GradualSupport support) {
+		List<GradualSequence> dbg = new ArrayList<>();
+		for (ValuedSequence vs : dbv) {
+			dbg.add(valuedToGradual(vs));
+		}
+
+		Collection<GradualSequence> patterns = forwardTreeMining(dbg, minSupport, support);
+
+		//for (GradualSequence pattern : patterns) {
+		//	mergingSuffixTree(pattern);
+		//}
+
+		return patterns;
+	}
+
 	public static GradualSequence valuedToGradual(ValuedSequence vs) {
 		GradualSequence gs = new GradualSequence();
 		for (ValuedItemset vis : vs.root()) {
