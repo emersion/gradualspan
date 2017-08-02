@@ -416,4 +416,44 @@ public class GradualSpanTest extends TestCase {
 
 		assertEquals(expected, gs);
 	}
+
+	public void testMergingSuffixTreeWithOtherChild() {
+		GradualSequence gs = new GradualSequence();
+		{
+			GradualNode gn1_1 = new GradualNode();
+			gs.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+
+			GradualNode gn1_2 = new GradualNode();
+			gs.begin.putChild(new GradualItem(c, GradualOrder.GREATER), gn1_2);
+
+			GradualNode gn2_1 = new GradualNode();
+			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), gn2_1);
+			gn1_2.putChild(new GradualItem(b, GradualOrder.GREATER), gn2_1);
+
+			GradualNode gn2_2 = new GradualNode();
+			gn1_2.putChild(new GradualItem(a, GradualOrder.LOWER), gn2_2);
+		}
+		gs.close();
+
+		System.out.println("--------------------------------------------");
+		System.out.println(gs);
+		GradualSpan.mergingSuffixTree(gs);
+		System.out.println(gs);
+
+		GradualSequence expected = new GradualSequence();
+		{
+			GradualNode gn1_1 = new GradualNode();
+			expected.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
+			expected.begin.putChild(new GradualItem(c, GradualOrder.GREATER), gn1_1);
+
+			GradualNode gn2_1 = new GradualNode();
+			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), gn2_1);
+
+			GradualNode gn2_2 = new GradualNode();
+			gn1_1.putChild(new GradualItem(a, GradualOrder.LOWER), gn2_2);
+		}
+		expected.close();
+
+		assertEquals(expected, gs);
+	}
 }

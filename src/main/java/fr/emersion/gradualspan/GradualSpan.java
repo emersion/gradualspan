@@ -157,10 +157,15 @@ public class GradualSpan {
 
 			// Merge nodes in sub-groups
 			for (Set<GradualNode> subGroup : subGroups) {
+				if (subGroup.size() <= 1) {
+					continue;
+				}
+
 				GradualNode merged = mergeNodes(subGroup);
 				merged.putChild(item, node);
 
 				// Add children to merged node
+				// TODO: that's not working
 				for (GradualNode n : subGroup) {
 					for (Map.Entry<GradualNode, Set<GradualItem>> childEntry : n.children.entrySet()) {
 						GradualNode child = childEntry.getKey();
