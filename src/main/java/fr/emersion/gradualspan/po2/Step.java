@@ -1,16 +1,12 @@
 package fr.emersion.gradualspan.po2;
 
 import java.lang.Iterable;
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.vocabulary.RDF;
-import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -19,35 +15,32 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.QuerySolutionMap;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.vocabulary.RDF;
 
 import fr.emersion.gradualspan.ValuedItem;
 import fr.emersion.gradualspan.ValuedItemset;
 
 public class Step implements ValuedItemset {
-	public static final String prefixes =
-		"PREFIX rdf: <"+RDF.uri+">\n" +
-		"PREFIX rdfs: <"+RDFS.uri+">\n" +
-		"PREFIX : <"+PO2.NS+">\n" +
-		"PREFIX time: <"+Time.NS+">\n";
-
 	private static String compactURI(String uri) {
 		return uri.replace(PO2.NS, ":");
 	}
 
 	private Itinerary itinerary;
-	private Resource step;
+	private Resource ressource;
 
-	public Step(Itinerary itinerary, Resource step) {
+	public Step(Itinerary itinerary, Resource ressource) {
 		this.itinerary = itinerary;
-		this.step = step;
+		this.ressource = ressource;
 	}
 
 	public static interface AttributeIterator extends Iterator<ValuedItem>, AutoCloseable {}
 
 	// TODO: caller won't auto-close
 	public AttributeIterator iterator() {
-		String queryString = prefixes +
+		String queryString = Main.prefixes +
 			"SELECT ?attribute ?observation ?mixture ?product WHERE {" +
 			"	{" +
 			"		?observation :observedDuring ?step ." +
@@ -70,7 +63,7 @@ public class Step implements ValuedItemset {
 			"}";
 
 		QuerySolutionMap bindings = new QuerySolutionMap();
-		bindings.add("step", this.step);
+		bindings.add("step", this.ressource);
 
 		Query query = QueryFactory.create(queryString);
 		QueryExecution qexec = QueryExecutionFactory.create(query, ModelFactory.createDefaultModel(), bindings);
@@ -161,7 +154,7 @@ public class Step implements ValuedItemset {
 
 	public Iterable<ValuedItemset> children() {
 		Itinerary itinerary = this.itinerary;
-		Resource interval = this.step.getProperty(PO2.existsAt).getResource();
+		Resource interval = this.ressource.getProperty(PO2.existsAt).getResource();
 
 		return new Iterable<ValuedItemset>() {
 			public Iterator<ValuedItemset> iterator() {
