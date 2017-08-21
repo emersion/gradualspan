@@ -74,6 +74,8 @@ public class Main {
 			db.add(new Itinerary(itinerary, intervals));
 		}
 
+		System.out.println(db);
+
 		System.out.println("Applying gradualspan...");
 
 		Collection<GradualSequence> patterns = GradualSpan.gradualSpan(db, 2, new GradualSupport.BySequence());

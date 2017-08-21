@@ -29,17 +29,14 @@ public class Step implements ValuedItemset {
 	}
 
 	private Itinerary itinerary;
-	private Resource ressource;
+	private Resource resource;
 
-	public Step(Itinerary itinerary, Resource ressource) {
+	public Step(Itinerary itinerary, Resource resource) {
 		this.itinerary = itinerary;
-		this.ressource = ressource;
+		this.resource = resource;
 	}
 
-	public static interface AttributeIterator extends Iterator<ValuedItem>, AutoCloseable {}
-
-	// TODO: caller won't auto-close
-	public AttributeIterator iterator() {
+	public Iterator<ValuedItem> iterator() {
 		String queryString = Main.prefixes +
 			"SELECT ?attribute ?observation ?mixture ?product WHERE {" +
 			"	{" +
@@ -63,20 +60,30 @@ public class Step implements ValuedItemset {
 			"}";
 
 		QuerySolutionMap bindings = new QuerySolutionMap();
-		bindings.add("step", this.ressource);
+		bindings.add("step", this.resource);
 
 		Query query = QueryFactory.create(queryString);
-		QueryExecution qexec = QueryExecutionFactory.create(query, ModelFactory.createDefaultModel(), bindings);
+		QueryExecution qexec = QueryExecutionFactory.create(query, this.resource.getModel(), bindings);
 		ResultSet results = qexec.execSelect();
 
-		return new AttributeIterator() {
+		return new Iterator<ValuedItem>() {
 			private QueryExecution exec = qexec;
 			private ResultSet iter = results;
 
 			public boolean hasNext() {
-				return this.iter.hasNext();
+				boolean next = this.iter.hasNext();
+				if (!next) {
+					try {
+						this.close();
+					} catch (Exception e) {
+						// TODO
+						throw new RuntimeException(e.toString());
+					}
+				}
+				return next;
 			}
 
+			// TODO: this is dangerous: return this.next()
 			public ValuedItem next() throws NoSuchElementException {
 				QuerySolution sol = this.iter.nextSolution();
 
@@ -116,7 +123,7 @@ public class Step implements ValuedItemset {
 					s = hasForValue.getString();
 				} else {
 					System.out.printf("Attribute %s has no value\n", attribute);
-					return null; // TODO
+					return this.next();
 				}
 				s = s.replace(",", "."); // Screw French people
 				if (s.length() > 0 && s.charAt(0) == '[') {
@@ -128,14 +135,14 @@ public class Step implements ValuedItemset {
 					v = new Float(s);
 				} catch (NumberFormatException e) {
 					System.out.printf("Attribute %s has invalid value: %s\n", attribute, s);
-					return null; // TODO
+					return this.next();
 				}
 
 				// TODO: prevent duplicate values for the same key
 				/*if (row.containsKey(k)) {
 					if (isSingularMeasureOf != null) {
 						// TODO: handle this case
-						return null;
+						return this.next();
 					}
 
 					//printProperties(attribute);
@@ -154,7 +161,7 @@ public class Step implements ValuedItemset {
 
 	public Iterable<ValuedItemset> children() {
 		Itinerary itinerary = this.itinerary;
-		Resource interval = this.ressource.getProperty(PO2.existsAt).getResource();
+		Resource interval = this.resource.getProperty(PO2.existsAt).getResource();
 
 		return new Iterable<ValuedItemset>() {
 			public Iterator<ValuedItemset> iterator() {
@@ -175,5 +182,17 @@ public class Step implements ValuedItemset {
 				};
 			}
 		};
+	}
+
+	public String toString() {
+		String s = ":step "+this.resource.getURI()+" {\n";
+		for (ValuedItem i : this) {
+			s += i.toString() + "\n";
+		}
+		for (ValuedItemset is : this.children()) {
+			s += is.toString() + "\n";
+		}
+		s += "}";
+		return s;
 	}
 }

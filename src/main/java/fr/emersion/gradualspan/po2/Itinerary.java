@@ -14,15 +14,15 @@ import fr.emersion.gradualspan.ValuedItemset;
 import fr.emersion.gradualspan.ValuedSequence;
 
 public class Itinerary implements ValuedSequence {
-	private Resource ressource;
+	private Resource resource;
 	protected Map<Resource, Resource> intervals; // interval -> step
 	protected Set<Resource> steps;
 
-	public Itinerary(Resource ressource, Map<Resource, Resource> intervals) {
-		this.ressource = ressource;
+	public Itinerary(Resource resource, Map<Resource, Resource> intervals) {
+		this.resource = resource;
 		this.intervals = intervals;
 
-		StmtIterator stmtIter = ressource.listProperties(PO2.hasForStep);
+		StmtIterator stmtIter = resource.listProperties(PO2.hasForStep);
 		this.steps = new HashSet<>();
 		while (stmtIter.hasNext()) {
 			this.steps.add(stmtIter.next().getResource());
@@ -47,5 +47,14 @@ public class Itinerary implements ValuedSequence {
 		}
 
 		return root;
+	}
+
+	public String toString() {
+		String s = ":itinerary "+this.resource.getURI()+" {\n";
+		for (ValuedItemset is : this.root()) {
+			s += is.toString() + "\n";
+		}
+		s += "}";
+		return s;
 	}
 }

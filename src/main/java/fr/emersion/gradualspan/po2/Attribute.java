@@ -31,4 +31,8 @@ public class Attribute implements ValuedItem {
 		}
 		return new GradualItem(this.k, go);
 	}
+
+	public String toString() {
+		return ":attribute " + this.k + "=" + this.v;
+	}
 }
