@@ -15,6 +15,10 @@ public class GradualNode {
 	public GradualNode() {}
 
 	public void putChild(GradualItem gi, GradualNode n) {
+		if (this == n) {
+			throw new RuntimeException("I cannot be my own child");
+		}
+
 		if (!this.children.containsKey(n)) {
 			this.children.put(n, new HashSet<>());
 		}

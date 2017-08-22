@@ -44,6 +44,9 @@ public class GradualSpan {
 		for (ValuedItem vi : vis) {
 			if (last.containsKey(vi.item())) {
 				Pair<ValuedItem, GradualNode> pair = last.get(vi.item());
+				if (gn == pair.second) {
+					continue; // Duplicate attribute
+				}
 				GradualItem gi = pair.first.toGradual(vi);
 				pair.second.putChild(gi, gn);
 			}
