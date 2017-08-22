@@ -34,7 +34,7 @@ public interface GradualSupport {
 		public Map<GradualItem, Occurence> listOccurences(Collection<GradualSequence> db, int minSupport) {
 			Map<GradualItem, Occurence> occurences = new HashMap<>();
 			for (GradualSequence seq : db) {
-				listSequenceOccurences(seq.begin, occurences, new HashSet<>());
+				listSequenceOccurences(seq.begin, seq.end, occurences, new HashSet<>());
 			}
 
 			// Two passes are needed to prevent java.util.ConcurrentModificationException
@@ -51,7 +51,8 @@ public interface GradualSupport {
 			return occurences;
 		}
 
-		private void listSequenceOccurences(GradualNode n, Map<GradualItem, Occurence> occurences, Set<GradualItem> visited) {
+		// TODO: end.parents has too many elements, does it matter?
+		private void listSequenceOccurences(GradualNode n, GradualNode end, Map<GradualItem, Occurence> occurences, Set<GradualItem> visited) {
 			for (Map.Entry<GradualNode, Set<GradualItem>> e : n.children.entrySet()) {
 				GradualNode child = e.getKey();
 				Set<GradualItem> is = e.getValue();
@@ -66,12 +67,12 @@ public interface GradualSupport {
 								occurences.put(i, occ);
 							}
 							occ.support++;
-							occ.projected.add(new GradualSequence(child));
+							occ.projected.add(new GradualSequence(child, end));
 							visited.add(i);
 						}
 					}
 				}
-				listSequenceOccurences(child, occurences, visited);
+				listSequenceOccurences(child, end, occurences, visited);
 			}
 		}
 
