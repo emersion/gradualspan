@@ -42,7 +42,7 @@ public class Step implements ValuedItemset {
 			"	{" +
 			"		?observation :observedDuring ?step ." +
 			"		?observation :computedResult ?attribute ." +
-			//"		FILTER NOT EXISTS { ?attribute :isSingularMeasureOf [] } ." +
+			"		FILTER NOT EXISTS { ?attribute :isSingularMeasureOf [] } ." + // Comment this to get functions too
 			/*"	} UNION {" +
 			"		?step :hasForMixture ?mixture ." +
 			"		?observation :observes ?mixture ." +

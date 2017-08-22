@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,7 @@ public class GradualSpan {
 
 	private static Collection<GradualSequence> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support, Set<Set<GradualSequence>> mined) {
 		Collection<GradualSequence> result = new ArrayList<>();
-		Map<GradualNode, Collection<GradualSequence>> projected = new HashMap<>();
+		Map<GradualNode, Collection<GradualSequence>> projected = new IdentityHashMap<>();
 
 		GradualSequence pattern = new GradualSequence();
 		result.add(pattern);
@@ -99,6 +100,7 @@ public class GradualSpan {
 			}
 
 			Map<GradualItem, GradualSupport.Occurence> occList = support.listOccurences(projected.get(node), minSupport);
+			projected.remove(node);
 
 			for (Map.Entry<GradualItem, GradualSupport.Occurence> e : occList.entrySet()) {
 				if (e.getValue().support != upperSupport) {
