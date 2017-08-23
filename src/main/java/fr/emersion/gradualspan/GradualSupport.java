@@ -58,18 +58,25 @@ public interface GradualSupport {
 				Set<GradualItem> is = e.getValue();
 
 				for (GradualItem i : is) {
-					if (i != null) {
-						// Only count one occurence per sequence
-						if (!visited.contains(i)) {
-							Occurence occ = occurences.get(i);
-							if (occ == null) {
-								occ = new Occurence();
-								occurences.put(i, occ);
-							}
-							occ.support++;
-							occ.projected.add(new GradualSequence(child, end));
-							visited.add(i);
+					if (i == null) {
+						continue;
+					}
+
+					// TODO: keep this? abstract this?
+					if (i.order == GradualOrder.EQUAL) {
+						continue;
+					}
+
+					// Only count one occurence per sequence
+					if (!visited.contains(i)) {
+						Occurence occ = occurences.get(i);
+						if (occ == null) {
+							occ = new Occurence();
+							occurences.put(i, occ);
 						}
+						occ.support++;
+						occ.projected.add(new GradualSequence(child, end));
+						visited.add(i);
 					}
 				}
 				listSequenceOccurences(child, end, occurences, visited);
