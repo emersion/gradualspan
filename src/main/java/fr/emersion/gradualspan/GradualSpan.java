@@ -2,6 +2,7 @@ package fr.emersion.gradualspan;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -40,7 +41,6 @@ public class GradualSpan {
 
 	private static GradualNode valuedNodeToGradual(ValuedItemset vis, GradualNode prev, Map<Object, Pair<ValuedItem, GradualNode>> last) {
 		GradualNode gn = new GradualNode();
-		//System.out.println(mapToString(last));
 
 		for (ValuedItem vi : vis) {
 			if (last.containsKey(vi.item())) {
@@ -65,15 +65,6 @@ public class GradualSpan {
 	private static<K, V> Map<K, V> copyMap(Map<K, V> m) {
 		// TODO: use a more efficient data structure
 		return new HashMap<>(m);
-	}
-
-	private static<K, V> String mapToString(Map<K, V> m) {
-		String s = "{";
-		for (K k : m.keySet()) {
-			s += k.toString()+": "+m.get(k).toString()+", ";
-		}
-		s += "}";
-		return s;
 	}
 
 	public static Collection<GradualSequence> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support) {
@@ -140,116 +131,110 @@ public class GradualSpan {
 	}
 
 	private static void mergingSuffixNode(GradualNode node) {
-		// Group predecessors by arrow label
-		Map<GradualItem, Set<GradualNode>> predecessors = new HashMap<>();
+		// STEP 1: remove redundant arrows pointing to node
+
+		// TODO: group multiple GradualItems and multiple GradualNodes?
+
+		// Group parents by arrow label
+		Map<GradualItem, Set<GradualNode>> parentsByItem = new HashMap<>();
 		for (GradualNode parent : node.parents) {
+			// Get all arrows from parent to node
 			Set<GradualItem> items = parent.children.get(node);
 			for (GradualItem gi : items) {
-				if (!predecessors.containsKey(gi)) {
-					predecessors.put(gi, new HashSet<>());
+				if (!parentsByItem.containsKey(gi)) {
+					parentsByItem.put(gi, Collections.newSetFromMap(new IdentityHashMap<>()));
 				}
-				predecessors.get(gi).add(parent);
+				parentsByItem.get(gi).add(parent);
 			}
 		}
 
-		// Split each group in subgroups of unordered nodes
-		for (Map.Entry<GradualItem, Set<GradualNode>> e : predecessors.entrySet()) {
-			GradualItem item = e.getKey();
-			Set<GradualNode> nodes = e.getValue();
-
-			List<Set<GradualNode>> subGroups = new ArrayList<>();
-			for (GradualNode n : nodes) {
-				boolean added = false;
-				for (Set<GradualNode> subGroup : subGroups) {
-					if (isUnorderedNode(subGroup, n)) {
-						subGroup.add(n);
-						added = true;
-						break;
-					}
-				}
-
-				if (!added) {
-					Set<GradualNode> subGroup = new HashSet<>();
-					subGroup.add(n);
-					subGroups.add(subGroup);
-				}
+		// Replace redundant arrows by empty arrows
+		for (Map.Entry<GradualItem, Set<GradualNode>> e : parentsByItem.entrySet()) {
+			GradualItem gi = e.getKey();
+			Set<GradualNode> parents = e.getValue();
+			if (gi == null) {
+				continue;
+			}
+			if (parents.size() <= 1) {
+				continue;
 			}
 
-			// Merge nodes in sub-groups
-			for (Set<GradualNode> subGroup : subGroups) {
-				if (subGroup.size() <= 1) {
-					continue;
-				}
-
-				GradualNode merged = mergeNodes(subGroup);
-				merged.putChild(item, node);
-
-				// Add children to merged node
-				// TODO: that's not working
-				for (GradualNode n : subGroup) {
-					for (Map.Entry<GradualNode, Set<GradualItem>> childEntry : n.children.entrySet()) {
-						GradualNode child = childEntry.getKey();
-						Set<GradualItem> childItems = childEntry.getValue();
-
-						for (GradualItem gi : childItems) {
-							if (Objects.equals(gi, item)) {
-								continue;
-							}
-
-							merged.putChild(gi, child);
-						}
-					}
-				}
+			GradualNode newNode = new GradualNode();
+			for (GradualNode parent : parents) {
+				parent.removeChild(gi, node);
+				parent.putChild(null, newNode);
 			}
+
+			newNode.putChild(gi, node);
 		}
 
-		// Recursive call on parents
+		// STEP 2: remove useless empty arrows
+
+		// Check if this node can be merged with a parent (that deletes this node)
+		// This is possible if this node has no other parent
+		boolean canMergeNode = node.parents.size() <= 1;
+
+		// List parents that can be merged with this node (that deletes parents)
+		// This is possible if:
+		// 1. There is only an empty arrow from the parent to this node
+		// 2. The parent only has this node as child
+		Set<GradualNode> parentsToMerge = Collections.newSetFromMap(new IdentityHashMap<>());
 		for (GradualNode parent : new ArrayList<>(node.parents)) {
-			mergingSuffixNode(parent);
-		}
-	}
+			Set<GradualItem> items = parent.children.get(node);
 
-	private static boolean isUnorderedNode(Set<GradualNode> set, GradualNode node) {
-		return !hasChild(set, node) && !hasParent(set, node);
-	}
+			// Check if there is an empty arrow from parent to this node that can
+			// potentially be removed
+			if (!items.contains(null)) {
+				continue;
+			}
 
-	private static boolean hasChild(Set<GradualNode> set, GradualNode node) {
-		for (GradualNode child : node.children.keySet()) {
-			if (set.contains(child) || hasChild(set, child)) {
-				return true;
+			if (items.size() == 1) {
+				// There is only an empty arrow from parent to this node
+				if (parent.children.size() == 1) {
+					// The parent only has this node as child
+					parentsToMerge.add(parent);
+				} else {
+					// TODO: try to merge this node with parent
+				}
+			} else {
+				// There is also a non-empty arrow from parent to node
+				// The empty arrow is useless
+				parent.removeChild(null, node);
 			}
 		}
-		return false;
-	}
 
-	private static boolean hasParent(Set<GradualNode> set, GradualNode node) {
-		for (GradualNode parent : node.parents) {
-			if (set.contains(parent) || hasParent(set, parent)) {
-				return true;
-			}
-		}
-		return false;
-	}
+		// Merge this node with a parent
+		// TODO
 
-	/**
-	 * Creates a new merged node from nodes such that all parents of each node
-	 * points to the new merged node.
-	 */
-	private static GradualNode mergeNodes(Set<GradualNode> nodes) {
-		GradualNode merged = new GradualNode();
-
-		for (GradualNode n : nodes) {
-			for (GradualNode p : n.parents) {
-				Set<GradualItem> items = p.children.get(n);
-				p.children.remove(n);
-
-				for (GradualItem item : items) {
-					p.putChild(item, merged);
+		// Merge parents with this node
+		for (GradualNode parent : parentsToMerge) {
+			// We want to delete parent
+			// We know that there is only a useless empty arrow from parent to this
+			// node
+			// We can discard parent.children and copy parent.parents to this node
+			for (GradualNode grandParent : new ArrayList<>(parent.parents)) {
+				Set<GradualItem> items = grandParent.children.get(parent);
+				for (GradualItem gi : items) {
+					grandParent.removeChild(gi, parent);
+					grandParent.putChild(gi, node);
 				}
 			}
-			n.parents.clear();
+
+			// Remove the useless empty arrow
+			parent.removeChild(null, node);
 		}
 
-		return merged;
+		// STEP 3: recursive call
+
+		// If some parents were merged, this node has now new parents
+		if (parentsToMerge.size() > 0) {
+			// Apply mergingSuffixNode one more time
+			mergingSuffixNode(node);
+		} else {
+			// Apply mergingSuffixNode on parents
+			for (GradualNode parent : new ArrayList<>(node.parents)) {
+				mergingSuffixNode(parent);
+			}
+		}
 	}
 }

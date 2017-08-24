@@ -364,8 +364,7 @@ public class GradualSpanTest extends TestCase {
 			expected.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
 			expected.begin.putChild(new GradualItem(c, GradualOrder.GREATER), gn1_1);
 
-			GradualNode gn2_1 = new GradualNode();
-			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), gn2_1);
+			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), expected.end);
 		}
 		expected.close();
 
@@ -400,25 +399,24 @@ public class GradualSpanTest extends TestCase {
 		GradualSequence expected = new GradualSequence();
 		{
 			GradualNode gn1_1 = new GradualNode();
-			expected.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
 			expected.begin.putChild(new GradualItem(c, GradualOrder.GREATER), gn1_1);
 
+			GradualNode gn1_2 = new GradualNode();
+			expected.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_2);
+			gn1_1.putChild(null, gn1_2);
+
 			GradualNode gn2_1 = new GradualNode();
-			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), gn2_1);
+			gn1_1.putChild(new GradualItem(a, GradualOrder.LOWER), gn2_1);
 
-			GradualNode gn2_2 = new GradualNode();
-			gn1_1.putChild(new GradualItem(a, GradualOrder.LOWER), gn2_2);
-
-			GradualNode gn3_2 = new GradualNode();
-			gn2_2.putChild(new GradualItem(c, GradualOrder.GREATER), gn3_2);
+			gn1_2.putChild(new GradualItem(b, GradualOrder.GREATER), expected.end);
+			gn2_1.putChild(new GradualItem(c, GradualOrder.GREATER), expected.end);
 		}
 		expected.close();
 
 		assertEquals(expected, gs);
 	}
 
-	// TODO
-	/*public void testMergingSuffixTreeWithOtherChild() {
+	public void testMergingSuffixTreeWithOtherChild() {
 		GradualSequence gs = new GradualSequence();
 		{
 			GradualNode gn1_1 = new GradualNode();
@@ -436,25 +434,25 @@ public class GradualSpanTest extends TestCase {
 		}
 		gs.close();
 
-		System.out.println("--------------------------------------------");
-		System.out.println(gs);
+		//System.out.println(gs);
 		GradualSpan.mergingSuffixTree(gs);
-		System.out.println(gs);
+		//System.out.println(gs);
 
 		GradualSequence expected = new GradualSequence();
 		{
 			GradualNode gn1_1 = new GradualNode();
 			expected.begin.putChild(new GradualItem(a, GradualOrder.GREATER), gn1_1);
-			expected.begin.putChild(new GradualItem(c, GradualOrder.GREATER), gn1_1);
 
-			GradualNode gn2_1 = new GradualNode();
-			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), gn2_1);
+			GradualNode gn1_2 = new GradualNode();
+			expected.begin.putChild(new GradualItem(c, GradualOrder.GREATER), gn1_2);
 
-			GradualNode gn2_2 = new GradualNode();
-			gn1_1.putChild(new GradualItem(a, GradualOrder.LOWER), gn2_2);
+			gn1_2.putChild(null, gn1_1);
+
+			gn1_1.putChild(new GradualItem(b, GradualOrder.GREATER), expected.end);
+			gn1_2.putChild(new GradualItem(a, GradualOrder.LOWER), expected.end);
 		}
 		expected.close();
 
 		assertEquals(expected, gs);
-	}*/
+	}
 }

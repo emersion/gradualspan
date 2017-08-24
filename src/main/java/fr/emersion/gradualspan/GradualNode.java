@@ -1,30 +1,46 @@
 package fr.emersion.gradualspan;
 
-import java.util.Set;
-import java.util.HashSet;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+// TODO: create a DoubleEndedGradualNode subclass, remove parents from this one
 public class GradualNode {
-	protected Set<GradualNode> parents = new HashSet<>();
-	protected Map<GradualNode, Set<GradualItem>> children = new HashMap<>();
+	protected Set<GradualNode> parents = Collections.newSetFromMap(new IdentityHashMap<>());
+	protected Map<GradualNode, Set<GradualItem>> children = new IdentityHashMap<>();
 
 	public GradualNode() {}
 
-	public void putChild(GradualItem gi, GradualNode n) {
-		if (this == n) {
+	public void putChild(GradualItem gi, GradualNode child) {
+		if (this == child) {
 			throw new RuntimeException("I cannot be my own child");
 		}
 
-		if (!this.children.containsKey(n)) {
-			this.children.put(n, new HashSet<>());
+		if (!this.children.containsKey(child)) {
+			this.children.put(child, new HashSet<>());
+			child.parents.add(this);
 		}
-		this.children.get(n).add(gi);
 
-		n.parents.add(this);
+		this.children.get(child).add(gi);
+	}
+
+	protected void removeChild(GradualItem gi, GradualNode child) {
+		if (!this.children.containsKey(child)) {
+			throw new RuntimeException("Attempting to remove an non-existing child");
+		}
+
+		Set<GradualItem> items = this.children.get(child);
+		items.remove(gi);
+
+		if (items.size() == 0) {
+			this.children.remove(child);
+			child.parents.remove(this);
+		}
 	}
 
 	public boolean equals(Object other) {
