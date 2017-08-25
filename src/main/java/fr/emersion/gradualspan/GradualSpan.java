@@ -15,13 +15,16 @@ import java.util.Set;
 
 public class GradualSpan {
 	public static Collection<GradualSequence> gradualSpan(Iterable<ValuedSequence> dbv, int minSupport, GradualSupport support) {
+		// Transform the po valued sequence database into a po gradual sequence database
 		List<GradualSequence> dbg = new ArrayList<>();
 		for (ValuedSequence vs : dbv) {
 			dbg.add(valuedToGradual(vs));
 		}
 
+		// Mine patterns
 		Collection<GradualSequence> patterns = forwardTreeMining(dbg, minSupport, support);
 
+		// Cleanup and prune patterns
 		//for (GradualSequence pattern : patterns) {
 		//	mergingSuffixTree(pattern);
 		//}
@@ -30,6 +33,9 @@ public class GradualSpan {
 	}
 
 	public static GradualSequence valuedToGradual(ValuedSequence vs) {
+		// Take each po valued sequence root, transform it and all its children into
+		// gradual nodes
+		// TODO: different roots can lead to the same node
 		GradualSequence gs = new GradualSequence();
 		for (ValuedItemset vis : vs.root()) {
 			GradualNode gnChild = valuedNodeToGradual(vis, gs.begin, new HashMap<>());
@@ -131,7 +137,8 @@ public class GradualSpan {
 	}
 
 	private static void mergingSuffixNode(GradualNode node) {
-		// STEP 1: remove redundant arrows pointing to node
+		// STEP 1: remove redundant non-empty arrows pointing to node
+		// That replaces them with empty arrows, that are cleaned in the next step
 
 		// TODO: group multiple GradualItems and multiple GradualNodes?
 
