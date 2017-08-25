@@ -173,6 +173,7 @@ public class GradualSpan {
 		// Check if this node can be merged with a parent (that deletes this node)
 		// This is possible if this node has no other parent
 		boolean canMergeNode = node.parents.size() <= 1;
+		GradualNode mergeNodeWith = null;
 
 		// List parents that can be merged with this node (that deletes parents)
 		// This is possible if:
@@ -193,8 +194,12 @@ public class GradualSpan {
 				if (parent.children.size() == 1) {
 					// The parent only has this node as child
 					parentsToMerge.add(parent);
+				} else if (canMergeNode) {
+					// This node can be merged with its only parent
+					mergeNodeWith = parent;
 				} else {
-					// TODO: try to merge this node with parent
+					// Unfortunately, the empty arrow cannot be removed
+					// Do nothing
 				}
 			} else {
 				// There is also a non-empty arrow from parent to node
@@ -204,7 +209,20 @@ public class GradualSpan {
 		}
 
 		// Merge this node with a parent
-		// TODO
+		if (mergeNodeWith != null) {
+			for (Map.Entry<GradualNode, Set<GradualItem>> e : new ArrayList<>(node.children.entrySet())) {
+				GradualNode child = e.getKey();
+				Set<GradualItem> items = e.getValue();
+
+				for (GradualItem gi : new ArrayList<>(items)) {
+					node.removeChild(gi, child);
+					mergeNodeWith.putChild(gi, child);
+				}
+			}
+
+			// Remove the useless empty arrow
+			mergeNodeWith.removeChild(null, node);
+		}
 
 		// Merge parents with this node
 		for (GradualNode parent : parentsToMerge) {
@@ -214,7 +232,7 @@ public class GradualSpan {
 			// We can discard parent.children and copy parent.parents to this node
 			for (GradualNode grandParent : new ArrayList<>(parent.parents)) {
 				Set<GradualItem> items = grandParent.children.get(parent);
-				for (GradualItem gi : items) {
+				for (GradualItem gi : new ArrayList<>(items)) {
 					grandParent.removeChild(gi, parent);
 					grandParent.putChild(gi, node);
 				}
@@ -227,9 +245,13 @@ public class GradualSpan {
 		// STEP 3: recursive call
 
 		// If some parents were merged, this node has now new parents
+		// If this node was merged, this node doesn't exist anymore
 		if (parentsToMerge.size() > 0) {
 			// Apply mergingSuffixNode one more time
 			mergingSuffixNode(node);
+		} else if (mergeNodeWith != null) {
+			// Apply mergingSuffixTree on this node's only former parent
+			mergingSuffixNode(mergeNodeWith);
 		} else {
 			// Apply mergingSuffixNode on parents
 			for (GradualNode parent : new ArrayList<>(node.parents)) {
