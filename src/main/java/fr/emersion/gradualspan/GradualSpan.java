@@ -16,18 +16,21 @@ import java.util.Set;
 public class GradualSpan {
 	public static Collection<GradualSequence> gradualSpan(Iterable<ValuedSequence> dbv, int minSupport, GradualSupport support) {
 		// Transform the po valued sequence database into a po gradual sequence database
+		System.out.println("Running valuedToGradual...");
 		List<GradualSequence> dbg = new ArrayList<>();
 		for (ValuedSequence vs : dbv) {
 			dbg.add(valuedToGradual(vs));
 		}
 
 		// Mine patterns
+		System.out.println("Running forwardTreeMining...");
 		Collection<GradualSequence> patterns = forwardTreeMining(dbg, minSupport, support);
 
 		// Cleanup and prune patterns
-		//for (GradualSequence pattern : patterns) {
-		//	mergingSuffixTree(pattern);
-		//}
+		System.out.println("Running mergingSuffixTree...");
+		for (GradualSequence pattern : patterns) {
+			mergingSuffixTree(pattern);
+		}
 
 		return patterns;
 	}
