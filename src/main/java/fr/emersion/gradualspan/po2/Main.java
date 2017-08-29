@@ -1,5 +1,6 @@
 package fr.emersion.gradualspan.po2;
 
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import fr.emersion.gradualspan.GradualSequence;
 import fr.emersion.gradualspan.GradualSpan;
 import fr.emersion.gradualspan.GradualSupport;
 import fr.emersion.gradualspan.ValuedSequence;
+import fr.emersion.gradualspan.graphviz.Writer;
 
 public class Main {
 	protected static final String prefixes =
@@ -39,14 +41,12 @@ public class Main {
 		String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CellExtraDry.rdf";
 		//String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CAREDAS_THESE_BOISARD_SIM_CAREDAS_Gierczynski_CAREDAS_LAWRENCE_CAREDAS_MOSCA_CAREDAS_PHAN_CARREDAS_BIGASKI_CARREDAS_LAWRENCE.rdf";
 
-		System.out.println("Loading ontology...");
-
+		System.out.println("Loading database in memory...");
 		OntModel ontModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM, null);
 		ontModel.read(FileManager.get().open(objectsFile), null);
 		Model model = ontModel;
 
 		System.out.println("Loading time concept...");
-
 		Map<Resource, Resource> intervals = new HashMap<>();
 		{
 			String queryString = prefixes +
@@ -66,18 +66,26 @@ public class Main {
 		}
 
 		System.out.println("Loading itineraries...");
-
 		List<ValuedSequence> db = new ArrayList<>();
 		ResIterator iter = model.listSubjectsWithProperty(RDF.type, PO2.itinerary);
 		while (iter.hasNext()) {
 			Resource itinerary = iter.next();
 			db.add(new Itinerary(itinerary, intervals));
 		}
+		System.out.println("Loaded "+db.size()+" itineraries.");
 
 		System.out.println("Applying gradualspan...");
+		Collection<GradualSequence> patterns = GradualSpan.gradualSpan(db, 15, new GradualSupport.BySequence());
+		//System.out.println(patterns);
+		System.out.println("Extracted "+patterns.size()+" patterns.");
 
-		Collection<GradualSequence> patterns = GradualSpan.gradualSpan(db, 2, new GradualSupport.BySequence());
-
-		System.out.println(patterns);
+		String outputPath = "output.dot";
+		System.out.println("Writing patterns to "+outputPath+"...");
+		try (FileOutputStream out = new FileOutputStream(outputPath)) {
+			Writer w = new Writer(out);
+			for (GradualSequence p : patterns) {
+				w.write(p);
+			}
+		}
 	}
 }

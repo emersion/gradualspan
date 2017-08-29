@@ -25,7 +25,7 @@ import fr.emersion.gradualspan.ValuedItemset;
 
 public class Step implements ValuedItemset {
 	private static String compactURI(String uri) {
-		return uri.replace(PO2.NS, ":");
+		return uri.replace(PO2.NS, ":").replace("http://aims.fao.org/aos/agrovoc/", "agrovoc:");
 	}
 
 	private Itinerary itinerary;

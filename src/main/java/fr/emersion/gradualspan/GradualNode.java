@@ -16,6 +16,10 @@ public class GradualNode {
 
 	public GradualNode() {}
 
+	public Map<GradualNode, Set<GradualItem>> children() {
+		return Collections.unmodifiableMap(this.children);
+	}
+
 	public void putChild(GradualItem gi, GradualNode child) {
 		if (this == child) {
 			throw new RuntimeException("I cannot be my own child");
