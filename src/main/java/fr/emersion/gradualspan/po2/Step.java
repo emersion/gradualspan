@@ -43,6 +43,7 @@ public class Step implements ValuedItemset {
 			"		?observation :observedDuring ?step ." +
 			"		?observation :computedResult ?attribute ." +
 			"		FILTER NOT EXISTS { ?attribute :isSingularMeasureOf [] } ." + // Comment this to get functions too
+			// Its seems this doesn't bring more data
 			/*"	} UNION {" +
 			"		?step :hasForMixture ?mixture ." +
 			"		?observation :observes ?mixture ." +
@@ -184,8 +185,18 @@ public class Step implements ValuedItemset {
 		};
 	}
 
+	public boolean equals(Object other) {
+		if (!(other instanceof Step)) return false;
+		Step step = (Step) other;
+		return this.resource.equals(step.resource);
+	}
+
+	public int hashCode() {
+		return this.resource.hashCode();
+	}
+
 	public String toString() {
-		String s = ":step "+this.resource.getURI()+" {\n";
+		String s = ":step "+this.compactURI(this.resource.getURI())+" {\n";
 		for (ValuedItem i : this) {
 			s += i.toString() + "\n";
 		}

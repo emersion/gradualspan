@@ -3,10 +3,14 @@ package fr.emersion.gradualspan.graphviz;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import fr.emersion.gradualspan.ValuedItem;
+import fr.emersion.gradualspan.ValuedItemset;
+import fr.emersion.gradualspan.ValuedSequence;
 import fr.emersion.gradualspan.GradualItem;
 import fr.emersion.gradualspan.GradualNode;
 import fr.emersion.gradualspan.GradualOrder;
@@ -20,19 +24,54 @@ public class Writer {
 		this.w = new PrintWriter(out);
 	}
 
-	public void write(GradualSequence s) {
-		this.w.printf("digraph sequence%d {\n", this.n);
+	public void write(ValuedSequence s) {
+		this.w.printf("digraph valuedsequence%d {\n", this.n);
 		this.n++;
 
-		this.w.printf("graph [pad=\"0.5\", nodesep=\"2\", ranksep=\"2\"];\n");
+		//this.w.printf("\tgraph [nodesep=\"0.5\", ranksep=\"2\", rankdir=\"LR\"];\n");
 
-		this.writeNode(s.begin, new IdentityHashMap<>());
+		Map<ValuedItemset, String> visited = new HashMap<>();
+		for (ValuedItemset is : s.root()) {
+			this.writeValuedNode(is, visited);
+		}
 
 		this.w.printf("}\n");
 		this.w.flush();
 	}
 
-	private void writeNode(GradualNode n, Map<GradualNode, String> visited) {
+	public void writeValuedNode(ValuedItemset is, Map<ValuedItemset, String> visited) {
+		String nodeId = this.nodeId(is, visited);
+
+		String label = "";
+		for (ValuedItem i : is) {
+			label += i+"\\n";
+		}
+		//this.w.printf("\t%s [label=\"%s\"];\n", nodeId, label);
+
+		for (ValuedItemset child : is.children()) {
+			boolean childVisited = visited.containsKey(child);
+			String childId = this.nodeId(child, visited);
+			this.w.printf("\t%s -> %s\n", nodeId, childId);
+
+			if (!childVisited) {
+				this.writeValuedNode(child, visited);
+			}
+		}
+	}
+
+	public void write(GradualSequence s) {
+		this.w.printf("digraph gradualsequence%d {\n", this.n);
+		this.n++;
+
+		this.w.printf("\tgraph [nodesep=\"0.5\", ranksep=\"2\", rankdir=\"LR\"];\n");
+
+		this.writeGradualNode(s.begin, new IdentityHashMap<>());
+
+		this.w.printf("}\n");
+		this.w.flush();
+	}
+
+	private void writeGradualNode(GradualNode n, Map<GradualNode, String> visited) {
 		String nodeId = this.nodeId(n, visited);
 
 		for (Map.Entry<GradualNode, Set<GradualItem>> e : n.children().entrySet()) {
@@ -43,7 +82,7 @@ public class Writer {
 
 			for (GradualItem item : items) {
 				if (item == null) {
-					this.w.printf("	%s -> %s;\n", nodeId, childId);
+					this.w.printf("\t%s -> %s;\n", nodeId, childId);
 				} else {
 					String color = "black";
 					if (item.order == GradualOrder.LOWER) {
@@ -51,17 +90,17 @@ public class Writer {
 					} else if (item.order == GradualOrder.GREATER) {
 						color = "blue";
 					}
-					this.w.printf("	%s -> %s [ label=\"%s\" color=\"%s\" ];\n", nodeId, childId, item, color);
+					this.w.printf("\t%s -> %s [label=\"%s\" color=\"%s\"];\n", nodeId, childId, item, color);
 				}
 			}
 
 			if (!childVisited) {
-				this.writeNode(child, visited);
+				this.writeGradualNode(child, visited);
 			}
 		}
 	}
 
-	private String nodeId(GradualNode n, Map<GradualNode, String> visited) {
+	private <T> String nodeId(T n, Map<T, String> visited) {
 		if (!visited.containsKey(n)) {
 			visited.put(n, Integer.toString(visited.size()));
 		}

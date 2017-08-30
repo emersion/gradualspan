@@ -66,22 +66,52 @@ public class Main {
 		}
 
 		System.out.println("Loading itineraries...");
-		List<ValuedSequence> db = new ArrayList<>();
+		List<ValuedSequence> dbv = new ArrayList<>();
 		ResIterator iter = model.listSubjectsWithProperty(RDF.type, PO2.itinerary);
 		while (iter.hasNext()) {
 			Resource itinerary = iter.next();
-			db.add(new Itinerary(itinerary, intervals));
+			dbv.add(new Itinerary(itinerary, intervals));
 		}
-		System.out.println("Loaded "+db.size()+" itineraries.");
+		//System.out.println(dbv);
+		System.out.println("Loaded "+dbv.size()+" itineraries.");
 
-		System.out.println("Applying gradualspan...");
-		Collection<GradualSequence> patterns = GradualSpan.gradualSpan(db, 15, new GradualSupport.BySequence());
-		//System.out.println(patterns);
+		String valuedSeqGraphPath = "valued-sequences.dot";
+		System.out.println("Writing valued sequences to "+valuedSeqGraphPath+"...");
+		try (FileOutputStream out = new FileOutputStream(valuedSeqGraphPath)) {
+			Writer w = new Writer(out);
+			for (ValuedSequence s : dbv) {
+				w.write(s);
+			}
+		}
+
+		System.out.println("Running valuedToGradual...");
+		List<GradualSequence> dbg = new ArrayList<>();
+		for (ValuedSequence vs : dbv) {
+			dbg.add(GradualSpan.valuedToGradual(vs));
+		}
+
+		String gradualSeqGraphPath = "gradual-sequences.dot";
+		System.out.println("Writing gradual sequences to "+gradualSeqGraphPath+"...");
+		try (FileOutputStream out = new FileOutputStream(gradualSeqGraphPath)) {
+			Writer w = new Writer(out);
+			for (GradualSequence s : dbg) {
+				w.write(s);
+			}
+		}
+
+		System.out.println("Running forwardTreeMining...");
+		Collection<GradualSequence> patterns = GradualSpan.forwardTreeMining(dbg, 15, new GradualSupport.BySequence());
+
+		System.out.println("Running mergingSuffixTree...");
+		for (GradualSequence pattern : patterns) {
+			GradualSpan.mergingSuffixTree(pattern);
+		}
+
 		System.out.println("Extracted "+patterns.size()+" patterns.");
 
-		String outputPath = "output.dot";
-		System.out.println("Writing patterns to "+outputPath+"...");
-		try (FileOutputStream out = new FileOutputStream(outputPath)) {
+		String patternsGraphPath = "patterns.dot";
+		System.out.println("Writing patterns to "+patternsGraphPath+"...");
+		try (FileOutputStream out = new FileOutputStream(patternsGraphPath)) {
 			Writer w = new Writer(out);
 			for (GradualSequence p : patterns) {
 				w.write(p);
