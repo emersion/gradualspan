@@ -49,6 +49,7 @@ public class GradualSpan {
 	}
 
 	private static GradualNode valuedNodeToGradual(ValuedItemset vis, GradualNode prev, Map<Object, Pair<ValuedItem, GradualNode>> last, Map<ValuedItemset, GradualNode> visited) {
+		// Make sure to create exactly one gradual node per valued node
 		GradualNode gn;
 		if (visited.containsKey(vis)) {
 			gn = visited.get(vis);
@@ -57,18 +58,26 @@ public class GradualSpan {
 			visited.put(vis, gn);
 		}
 
+		// For each item, check if we've seen it before. If so, draw an arrow from
+		// the previous node to this one.
 		for (ValuedItem vi : vis) {
 			if (last.containsKey(vi.item())) {
 				Pair<ValuedItem, GradualNode> pair = last.get(vi.item());
-				if (gn == pair.second) {
+				ValuedItem lastItem = pair.first;
+				GradualNode lastNode = pair.second;
+
+				if (gn == lastNode) {
 					continue; // Duplicate attribute
 				}
-				GradualItem gi = pair.first.toGradual(vi);
-				pair.second.putChild(gi, gn);
+
+				GradualItem gi = lastItem.toGradual(vi);
+				lastNode.putChild(gi, gn);
 			}
 			last.put(vi.item(), new Pair<>(vi, gn));
 		}
 
+		// Create gradual nodes for children, draw empty arrows from this node to
+		// its children.
 		for (ValuedItemset child : vis.children()) {
 			GradualNode gnChild = valuedNodeToGradual(child, gn, copyMap(last), visited);
 			gn.putChild(null, gnChild);
@@ -90,11 +99,13 @@ public class GradualSpan {
 		Collection<GradualSequence> result = new ArrayList<>();
 		Map<GradualNode, Collection<GradualSequence>> projected = new IdentityHashMap<>();
 
+		// In this call, we will mine a pattern with a support of exactly
+		// upperSupport.
+		int upperSupport = support.size(db);
+
 		GradualSequence pattern = new GradualSequence();
 		result.add(pattern);
 		projected.put(pattern.begin, db);
-
-		int upperSupport = support.size(db);
 
 		Queue<GradualNode> nodeQueue = new LinkedList<>();
 		nodeQueue.add(pattern.begin);
@@ -105,34 +116,37 @@ public class GradualSpan {
 				break;
 			}
 
+			// List item occurences in this node's projected DB
 			Map<GradualItem, GradualSupport.Occurence> occList = support.listOccurences(projected.get(node), minSupport);
-			projected.remove(node);
+			projected.remove(node); // We won't need that anymore
 
 			for (Map.Entry<GradualItem, GradualSupport.Occurence> e : occList.entrySet()) {
-				if (e.getValue().support != upperSupport) {
-					continue;
+				GradualItem item = e.getKey();
+				GradualSupport.Occurence occ = e.getValue();
+
+				// If the occurence has a high enough support to be included in this
+				// pattern without decreasing its support, do it. Otherwise, call
+				// ourselves recursively to mine a pattern having a lower support.
+				if (occ.support == upperSupport) {
+					// Create a new node, add it to the pattern, and add the new node to
+					// the queue
+					GradualNode newNode = new GradualNode();
+					projected.put(newNode, occ.projected);
+					node.putChild(item, newNode);
+					nodeQueue.add(newNode);
+				} else {
+					// Get the subset of the database that supports the item
+					Collection<GradualSequence> subDB = support.cover(db, item);
+					Set<GradualSequence> subSet = new HashSet<>(subDB);
+					if (mined.contains(subSet)) {
+						continue; // Already mined
+					}
+					mined.add(subSet);
+
+					// Mine the pattern
+					Collection<GradualSequence> subResult = forwardTreeMining(subDB, minSupport, support, mined);
+					result.addAll(subResult);
 				}
-
-				GradualNode newNode = new GradualNode();
-				projected.put(newNode, e.getValue().projected);
-				node.putChild(e.getKey(), newNode);
-				nodeQueue.add(newNode);
-			}
-
-			for (Map.Entry<GradualItem, GradualSupport.Occurence> e : occList.entrySet()) {
-				if (e.getValue().support == upperSupport) {
-					continue;
-				}
-
-				Collection<GradualSequence> subDB = support.cover(db, e.getKey());
-				Set<GradualSequence> subSet = new HashSet<>(subDB);
-				if (mined.contains(subSet)) {
-					continue; // Already mined
-				}
-				mined.add(subSet);
-
-				Collection<GradualSequence> subResult = forwardTreeMining(subDB, minSupport, support, mined);
-				result.addAll(subResult);
 			}
 		}
 
