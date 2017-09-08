@@ -24,6 +24,7 @@ import org.apache.jena.util.FileManager;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 
+import fr.emersion.gradualspan.GradualPattern;
 import fr.emersion.gradualspan.GradualSequence;
 import fr.emersion.gradualspan.GradualSpan;
 import fr.emersion.gradualspan.GradualSupport;
@@ -100,14 +101,19 @@ public class Main {
 		}
 
 		System.out.println("Running forwardTreeMining...");
-		Collection<GradualSequence> patterns = GradualSpan.forwardTreeMining(dbg, 15, new GradualSupport.BySequence());
+		Collection<GradualPattern> patterns = GradualSpan.forwardTreeMining(dbg, 15, new GradualSupport.BySequence());
 
 		System.out.println("Running mergingSuffixTree...");
-		for (GradualSequence pattern : patterns) {
+		for (GradualPattern pattern : patterns) {
 			GradualSpan.mergingSuffixTree(pattern);
 		}
 
 		System.out.println("Extracted "+patterns.size()+" patterns.");
+		int i = 0;
+		for (GradualPattern pattern : patterns) {
+			System.out.println(i+": support="+pattern.support());
+			i++;
+		}
 
 		String patternsGraphPath = "patterns.dot";
 		System.out.println("Writing patterns to "+patternsGraphPath+"...");

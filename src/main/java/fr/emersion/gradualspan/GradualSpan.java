@@ -14,7 +14,7 @@ import java.util.Queue;
 import java.util.Set;
 
 public class GradualSpan {
-	public static Collection<GradualSequence> gradualSpan(Iterable<ValuedSequence> dbv, int minSupport, GradualSupport support) {
+	public static Collection<GradualPattern> gradualSpan(Iterable<ValuedSequence> dbv, int minSupport, GradualSupport support) {
 		// Transform the po valued sequence database into a po gradual sequence database
 		System.out.println("Running valuedToGradual...");
 		List<GradualSequence> dbg = new ArrayList<>();
@@ -24,11 +24,11 @@ public class GradualSpan {
 
 		// Mine patterns
 		System.out.println("Running forwardTreeMining...");
-		Collection<GradualSequence> patterns = forwardTreeMining(dbg, minSupport, support);
+		Collection<GradualPattern> patterns = forwardTreeMining(dbg, minSupport, support);
 
 		// Cleanup and prune patterns
 		System.out.println("Running mergingSuffixTree...");
-		for (GradualSequence pattern : patterns) {
+		for (GradualPattern pattern : patterns) {
 			mergingSuffixTree(pattern);
 		}
 
@@ -91,19 +91,20 @@ public class GradualSpan {
 		return new HashMap<>(m);
 	}
 
-	public static Collection<GradualSequence> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support) {
+	public static Collection<GradualPattern> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support) {
 		return forwardTreeMining(db, minSupport, support, new HashSet<>());
 	}
 
-	private static Collection<GradualSequence> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support, Set<Set<GradualSequence>> mined) {
-		Collection<GradualSequence> result = new ArrayList<>();
+	private static Collection<GradualPattern> forwardTreeMining(Collection<GradualSequence> db, int minSupport, GradualSupport support, Set<Set<GradualSequence>> mined) {
+		Collection<GradualPattern> result = new ArrayList<>();
 		Map<GradualNode, Collection<GradualSequence>> projected = new IdentityHashMap<>();
 
 		// In this call, we will mine a pattern with a support of exactly
 		// upperSupport.
 		int upperSupport = support.size(db);
 
-		GradualSequence pattern = new GradualSequence();
+		GradualPattern pattern = new GradualPattern();
+		pattern.support = upperSupport;
 		result.add(pattern);
 		projected.put(pattern.begin, db);
 
@@ -144,7 +145,7 @@ public class GradualSpan {
 					mined.add(subSet);
 
 					// Mine the pattern
-					Collection<GradualSequence> subResult = forwardTreeMining(subDB, minSupport, support, mined);
+					Collection<GradualPattern> subResult = forwardTreeMining(subDB, minSupport, support, mined);
 					result.addAll(subResult);
 				}
 			}

@@ -286,7 +286,7 @@ public class GradualSpanTest extends TestCase {
 		Collection<GradualSequence> db = gradualDBSmall();
 		int minSupport = 2;
 
-		Collection<GradualSequence> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
+		Collection<GradualPattern> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
 		//System.out.println(patterns);
 
 		List<GradualSequence> expected = new ArrayList<>();
@@ -306,7 +306,7 @@ public class GradualSpanTest extends TestCase {
 		Collection<GradualSequence> db = gradualDB();
 		int minSupport = 2;
 
-		Collection<GradualSequence> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
+		Collection<GradualPattern> patterns = GradualSpan.forwardTreeMining(db, minSupport, new GradualSupport.BySequence());
 		//System.out.println(patterns);
 
 		List<GradualSequence> expected = new ArrayList<>();
