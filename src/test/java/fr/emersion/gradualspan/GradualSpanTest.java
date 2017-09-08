@@ -31,24 +31,24 @@ public class GradualSpanTest extends TestCase {
 	private ValuedSequence valuedSequence() {
 		ValuedSequence vs = new ValuedSequence();
 
-		ValuedItemset vis1_1 = new ValuedItemset();
+		ValuedNode vis1_1 = new ValuedNode();
 		vis1_1.add(new ValuedItem(a, 10));
 		vs.add(vis1_1);
 
-		ValuedItemset vis2_1 = new ValuedItemset();
+		ValuedNode vis2_1 = new ValuedNode();
 		vis2_1.add(new ValuedItem(a, 15));
 		vis1_1.children.add(vis2_1);
 
-		ValuedItemset vis1_2 = new ValuedItemset();
+		ValuedNode vis1_2 = new ValuedNode();
 		vis1_2.add(new ValuedItem(b, 15));
 		vis1_2.add(new ValuedItem(c, 10));
 		vs.add(vis1_2);
 
-		ValuedItemset vis2_2 = new ValuedItemset();
+		ValuedNode vis2_2 = new ValuedNode();
 		vis2_2.add(new ValuedItem(b, 10));
 		vis1_2.children.add(vis2_2);
 
-		ValuedItemset vis2_3 = new ValuedItemset();
+		ValuedNode vis2_3 = new ValuedNode();
 		vis2_3.add(new ValuedItem(b, 15));
 		vis2_3.add(new ValuedItem(c, 15));
 		vis1_2.children.add(vis2_3);
@@ -167,24 +167,24 @@ public class GradualSpanTest extends TestCase {
 		return db;
 	}
 
-	private static class ValuedSequence extends ArrayList<fr.emersion.gradualspan.ValuedItemset> implements fr.emersion.gradualspan.ValuedSequence {
-		public Iterable<fr.emersion.gradualspan.ValuedItemset> root() {
+	private static class ValuedSequence extends ArrayList<fr.emersion.gradualspan.ValuedNode> implements fr.emersion.gradualspan.ValuedSequence {
+		public Iterable<fr.emersion.gradualspan.ValuedNode> root() {
 			return this;
 		}
 
 		public String toString() {
 			String s = "";
-			for (fr.emersion.gradualspan.ValuedItemset vis : this.root()) {
+			for (fr.emersion.gradualspan.ValuedNode vis : this.root()) {
 				s += vis.toString() + "\n";
 			}
 			return s;
 		}
 	}
 
-	private static class ValuedItemset extends HashSet<fr.emersion.gradualspan.ValuedItem> implements fr.emersion.gradualspan.ValuedItemset {
-		private ArrayList<fr.emersion.gradualspan.ValuedItemset> children = new ArrayList<>();
+	private static class ValuedNode extends HashSet<fr.emersion.gradualspan.ValuedItem> implements fr.emersion.gradualspan.ValuedNode {
+		private ArrayList<fr.emersion.gradualspan.ValuedNode> children = new ArrayList<>();
 
-		public Iterable<fr.emersion.gradualspan.ValuedItemset> children() {
+		public Iterable<fr.emersion.gradualspan.ValuedNode> children() {
 			return this.children;
 		}
 
@@ -202,7 +202,7 @@ public class GradualSpanTest extends TestCase {
 			}
 
 			s += "{\n";
-			for (fr.emersion.gradualspan.ValuedItemset vis : this.children) {
+			for (fr.emersion.gradualspan.ValuedNode vis : this.children) {
 				s += vis.toString() + "\n";
 			}
 			s += "}";

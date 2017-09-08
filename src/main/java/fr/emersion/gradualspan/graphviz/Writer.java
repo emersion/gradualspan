@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import fr.emersion.gradualspan.ValuedItem;
-import fr.emersion.gradualspan.ValuedItemset;
+import fr.emersion.gradualspan.ValuedNode;
 import fr.emersion.gradualspan.ValuedSequence;
 import fr.emersion.gradualspan.GradualItem;
 import fr.emersion.gradualspan.GradualNode;
@@ -30,8 +30,8 @@ public class Writer {
 
 		//this.w.printf("\tgraph [nodesep=\"0.5\", ranksep=\"2\", rankdir=\"LR\"];\n");
 
-		Map<ValuedItemset, String> visited = new HashMap<>();
-		for (ValuedItemset is : s.root()) {
+		Map<ValuedNode, String> visited = new HashMap<>();
+		for (ValuedNode is : s.root()) {
 			this.writeValuedNode(is, visited);
 		}
 
@@ -39,7 +39,7 @@ public class Writer {
 		this.w.flush();
 	}
 
-	public void writeValuedNode(ValuedItemset is, Map<ValuedItemset, String> visited) {
+	public void writeValuedNode(ValuedNode is, Map<ValuedNode, String> visited) {
 		String nodeId = this.nodeId(is, visited);
 
 		String label = "";
@@ -48,7 +48,7 @@ public class Writer {
 		}
 		//this.w.printf("\t%s [label=\"%s\"];\n", nodeId, label);
 
-		for (ValuedItemset child : is.children()) {
+		for (ValuedNode child : is.children()) {
 			boolean childVisited = visited.containsKey(child);
 			String childId = this.nodeId(child, visited);
 			this.w.printf("\t%s -> %s\n", nodeId, childId);

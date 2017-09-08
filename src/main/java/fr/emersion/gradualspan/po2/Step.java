@@ -21,9 +21,9 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
 
 import fr.emersion.gradualspan.ValuedItem;
-import fr.emersion.gradualspan.ValuedItemset;
+import fr.emersion.gradualspan.ValuedNode;
 
-public class Step implements ValuedItemset {
+public class Step implements ValuedNode {
 	private static String compactURI(String uri) {
 		return uri.replace(PO2.NS, ":").replace("http://aims.fao.org/aos/agrovoc/", "agrovoc:");
 	}
@@ -160,22 +160,22 @@ public class Step implements ValuedItemset {
 		};
 	}
 
-	public Iterable<ValuedItemset> children() {
+	public Iterable<ValuedNode> children() {
 		Itinerary itinerary = this.itinerary;
 		Resource interval = this.resource.getProperty(PO2.existsAt).getResource();
 
-		return new Iterable<ValuedItemset>() {
-			public Iterator<ValuedItemset> iterator() {
+		return new Iterable<ValuedNode>() {
+			public Iterator<ValuedNode> iterator() {
 				StmtIterator stmtIter = interval.listProperties(Time.intervalBefore);
 
-				return new Iterator<ValuedItemset>() {
+				return new Iterator<ValuedNode>() {
 					private StmtIterator iter = stmtIter;
 
 					public boolean hasNext() {
 						return this.iter.hasNext();
 					}
 
-					public ValuedItemset next() throws NoSuchElementException {
+					public ValuedNode next() throws NoSuchElementException {
 						Resource nextInterval = stmtIter.next().getResource();
 						Resource nextStep = itinerary.intervals.get(nextInterval);
 						return new Step(itinerary, nextStep);
@@ -200,7 +200,7 @@ public class Step implements ValuedItemset {
 		for (ValuedItem i : this) {
 			s += i.toString() + "\n";
 		}
-		for (ValuedItemset is : this.children()) {
+		for (ValuedNode is : this.children()) {
 			s += is.toString() + "\n";
 		}
 		s += "}";

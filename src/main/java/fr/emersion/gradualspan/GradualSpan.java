@@ -39,8 +39,8 @@ public class GradualSpan {
 		// Take each po valued sequence root, transform it and all its children into
 		// gradual nodes
 		GradualSequence gs = new GradualSequence();
-		Map<ValuedItemset, GradualNode> visited = new HashMap<>();
-		for (ValuedItemset vis : vs.root()) {
+		Map<ValuedNode, GradualNode> visited = new HashMap<>();
+		for (ValuedNode vis : vs.root()) {
 			GradualNode gnChild = valuedNodeToGradual(vis, gs.begin, new HashMap<>(), visited);
 			gs.begin.putChild(null, gnChild);
 		}
@@ -48,7 +48,7 @@ public class GradualSpan {
 		return gs;
 	}
 
-	private static GradualNode valuedNodeToGradual(ValuedItemset vis, GradualNode prev, Map<Object, Pair<ValuedItem, GradualNode>> last, Map<ValuedItemset, GradualNode> visited) {
+	private static GradualNode valuedNodeToGradual(ValuedNode vis, GradualNode prev, Map<Object, Pair<ValuedItem, GradualNode>> last, Map<ValuedNode, GradualNode> visited) {
 		// Make sure to create exactly one gradual node per valued node
 		GradualNode gn;
 		if (visited.containsKey(vis)) {
@@ -78,7 +78,7 @@ public class GradualSpan {
 
 		// Create gradual nodes for children, draw empty arrows from this node to
 		// its children.
-		for (ValuedItemset child : vis.children()) {
+		for (ValuedNode child : vis.children()) {
 			GradualNode gnChild = valuedNodeToGradual(child, gn, copyMap(last), visited);
 			gn.putChild(null, gnChild);
 		}

@@ -10,7 +10,7 @@ import java.util.Set;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 
-import fr.emersion.gradualspan.ValuedItemset;
+import fr.emersion.gradualspan.ValuedNode;
 import fr.emersion.gradualspan.ValuedSequence;
 
 public class Itinerary implements ValuedSequence {
@@ -29,7 +29,7 @@ public class Itinerary implements ValuedSequence {
 		}
 	}
 
-	public Iterable<ValuedItemset> root() {
+	public Iterable<ValuedNode> root() {
 		Set<Resource> rootSteps = new HashSet<>(this.steps);
 		for (Resource step : this.steps) {
 			Resource interval = step.getProperty(PO2.existsAt).getResource();
@@ -41,7 +41,7 @@ public class Itinerary implements ValuedSequence {
 			}
 		}
 
-		List<ValuedItemset> root = new ArrayList<>();
+		List<ValuedNode> root = new ArrayList<>();
 		for (Resource step : rootSteps) {
 			root.add(new Step(this, step));
 		}
@@ -51,7 +51,7 @@ public class Itinerary implements ValuedSequence {
 
 	public String toString() {
 		String s = ":itinerary "+this.resource.getURI()+" {\n";
-		for (ValuedItemset is : this.root()) {
+		for (ValuedNode is : this.root()) {
 			s += is.toString() + "\n";
 		}
 		s += "}";
