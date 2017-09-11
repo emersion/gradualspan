@@ -2,7 +2,7 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>fr.emersion.gradualspan</groupId>
-  <artifactId>jena-playground</artifactId>
+  <artifactId>gradualspan</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
   <name>gradualspan</name>
@@ -68,8 +68,8 @@
         <configuration>
           <mainClass>fr.emersion.gradualspan.po2.Main</mainClass>
           <arguments>
-            <argument>foo</argument>
-            <argument>bar</argument>
+            <argument>/home/simon/Downloads/Ontologie/PO2_output_CellExtraDry.rdf</argument>
+            <!-- <argument>/home/simon/Downloads/Ontologie/PO2_output_CAREDAS_THESE_BOISARD_SIM_CAREDAS_Gierczynski_CAREDAS_LAWRENCE_CAREDAS_MOSCA_CAREDAS_PHAN_CARREDAS_BIGASKI_CARREDAS_LAWRENCE.rdf</argument> -->
           </arguments>
         </configuration>
       </plugin>

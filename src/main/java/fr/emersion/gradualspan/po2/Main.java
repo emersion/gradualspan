@@ -39,8 +39,12 @@ public class Main {
 		"PREFIX time: <"+Time.NS+">\n";
 
 	public static void main(String[] args) throws Exception {
-		String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CellExtraDry.rdf";
-		//String objectsFile = "/home/simon/Downloads/Ontologie/PO2_output_CAREDAS_THESE_BOISARD_SIM_CAREDAS_Gierczynski_CAREDAS_LAWRENCE_CAREDAS_MOSCA_CAREDAS_PHAN_CARREDAS_BIGASKI_CARREDAS_LAWRENCE.rdf";
+		if (args.length == 0) {
+			System.out.println("usage: gradualspan-po2 <database>");
+			System.exit(1);
+		}
+
+		String objectsFile = args[0];
 
 		System.out.println("Loading database in memory...");
 		OntModel ontModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM, null);
