@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+
+if [ "$#" -eq 0 ]; then
+	echo "usage: multidot <filename>"
+	exit 1
+fi
+
+name=${1%.dot}
+rm -f "$name.*.dot" "$name.*.dot.png"
+csplit -f "$name." -b "%d.dot" -z "$1" -s '/^digraph /' '{*}'
+
+for f in $name.*.dot; do
+	echo "$f.png"
+	dot -Tpng "$f" -o "$f.png"
+	rm "$f"
+done

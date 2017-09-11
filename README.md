@@ -14,6 +14,10 @@ Run with:
 make run
 ```
 
+This outputs graphs in `valued-sequences.dot`, `gradual-sequences.dot` and
+`patterns.dot`. To render these graphs, use `bin/multidot <filename>` (requires
+Graphviz to be installed).
+
 ## License
 
 MIT
