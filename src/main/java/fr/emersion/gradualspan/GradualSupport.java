@@ -44,9 +44,7 @@ public interface GradualSupport {
 					removed.add(e.getKey());
 				}
 			}
-			for (GradualItem k : removed) {
-				occurences.remove(k);
-			}
+			occurences.keySet().removeAll(removed);
 
 			return occurences;
 		}

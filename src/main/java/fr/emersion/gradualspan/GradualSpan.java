@@ -99,6 +99,13 @@ public class GradualSpan {
 		Collection<GradualPattern> result = new ArrayList<>();
 		Map<GradualNode, Collection<GradualSequence>> projected = new IdentityHashMap<>();
 
+		// Check if the database has already been mined
+		Set<GradualSequence> dbSet = new HashSet<>(db);
+		if (mined.contains(dbSet)) {
+			return result;
+		}
+		mined.add(dbSet);
+
 		// In this call, we will mine a pattern with a support of exactly
 		// upperSupport.
 		int upperSupport = support.size(db);
@@ -138,11 +145,6 @@ public class GradualSpan {
 				} else {
 					// Get the subset of the database that supports the item
 					Collection<GradualSequence> subDB = support.cover(db, item);
-					Set<GradualSequence> subSet = new HashSet<>(subDB);
-					if (mined.contains(subSet)) {
-						continue; // Already mined
-					}
-					mined.add(subSet);
 
 					// Mine the pattern
 					Collection<GradualPattern> subResult = forwardTreeMining(subDB, minSupport, support, mined);
