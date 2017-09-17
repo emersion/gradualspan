@@ -67,7 +67,7 @@ public class Step implements ValuedNode {
 		QueryExecution qexec = QueryExecutionFactory.create(query, this.resource.getModel(), bindings);
 		ResultSet results = qexec.execSelect();
 
-		return new Iterator<ValuedItem>() {
+		return new NotNullIterator<>(new Iterator<ValuedItem>() {
 			private QueryExecution exec = qexec;
 			private ResultSet iter = results;
 
@@ -84,7 +84,6 @@ public class Step implements ValuedNode {
 				return next;
 			}
 
-			// TODO: this is dangerous: return this.next()
 			public ValuedItem next() throws NoSuchElementException {
 				QuerySolution sol = this.iter.nextSolution();
 
@@ -124,7 +123,7 @@ public class Step implements ValuedNode {
 					s = hasForValue.getString();
 				} else {
 					System.out.printf("Attribute %s has no value\n", attribute);
-					return this.next();
+					return null;
 				}
 				s = s.replace(",", "."); // Screw French people
 				if (s.length() > 0 && s.charAt(0) == '[') {
@@ -136,14 +135,14 @@ public class Step implements ValuedNode {
 					v = new Float(s);
 				} catch (NumberFormatException e) {
 					System.out.printf("Attribute %s has invalid value: %s\n", attribute, s);
-					return this.next();
+					return null;
 				}
 
 				// TODO: prevent duplicate values for the same key
 				/*if (row.containsKey(k)) {
 					if (isSingularMeasureOf != null) {
 						// TODO: handle this case
-						return this.next();
+						return null;
 					}
 
 					//printProperties(attribute);
@@ -157,7 +156,7 @@ public class Step implements ValuedNode {
 			public void close() throws Exception {
 				this.exec.close();
 			}
-		};
+		});
 	}
 
 	public Iterable<ValuedNode> children() {
