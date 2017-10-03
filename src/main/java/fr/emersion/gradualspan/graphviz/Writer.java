@@ -42,11 +42,11 @@ public class Writer {
 	public void writeValuedNode(ValuedNode is, Map<ValuedNode, String> visited) {
 		String nodeId = this.nodeId(is, visited);
 
-		String label = "";
-		for (ValuedItem i : is) {
-			label += i+"\\n";
-		}
-		//this.w.printf("\t%s [label=\"%s\"];\n", nodeId, label);
+		//String label = "";
+		//for (ValuedItem i : is) {
+		//	label += i+"\\n";
+		//}
+		this.w.printf("\t%s [label=\"%s\"];\n", nodeId, is.name());
 
 		for (ValuedNode child : is.children()) {
 			boolean childVisited = visited.containsKey(child);

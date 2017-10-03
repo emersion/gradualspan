@@ -188,6 +188,10 @@ public class GradualSpanTest extends TestCase {
 			return this.children;
 		}
 
+		public String name() {
+			return Integer.valueOf​(this.hashCode()).toString();
+		}
+
 		public String toString() {
 			String s = "";
 			for (fr.emersion.gradualspan.ValuedItem vi : this) {
@@ -238,7 +242,7 @@ public class GradualSpanTest extends TestCase {
 		}
 
 		public String toString() {
-			return this.item.toString() + "=" + new Float(this.value).toString();
+			return this.item.toString() + "=" + Float.valueOf(this.value).toString();
 		}
 	}
 

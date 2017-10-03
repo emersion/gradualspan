@@ -19,6 +19,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 
 import fr.emersion.gradualspan.ValuedItem;
 import fr.emersion.gradualspan.ValuedNode;
@@ -132,7 +133,7 @@ public class Step implements ValuedNode {
 				}
 				float v;
 				try {
-					v = new Float(s);
+					v = Float.parseFloat(s);
 				} catch (NumberFormatException e) {
 					System.out.printf("Attribute %s has invalid value: %s\n", attribute, s);
 					return null;
@@ -182,6 +183,14 @@ public class Step implements ValuedNode {
 				};
 			}
 		};
+	}
+
+	public String name() {
+		Statement label = this.resource.getProperty(RDF.type).getResource().getProperty(RDFS.label);
+		if (label == null) {
+			return null;
+		}
+		return label.getString();
 	}
 
 	public boolean equals(Object other) {
