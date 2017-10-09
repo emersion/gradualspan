@@ -13,8 +13,13 @@ import java.util.Set;
 public class GradualNode {
 	protected Set<GradualNode> parents = Collections.newSetFromMap(new IdentityHashMap<>());
 	protected Map<GradualNode, Set<GradualItem>> children = new IdentityHashMap<>();
+	private String name = null;
 
 	public GradualNode() {}
+
+	public GradualNode(String name) {
+		this.name = name;
+	}
 
 	public Map<GradualNode, Set<GradualItem>> children() {
 		return Collections.unmodifiableMap(this.children);
@@ -77,6 +82,10 @@ public class GradualNode {
 			}
 		}
 		return true;
+	}
+
+	public String name() {
+		return this.name;
 	}
 
 	private String toStringWithIndent(String indent) {

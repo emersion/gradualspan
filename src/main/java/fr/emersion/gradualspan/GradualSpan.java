@@ -54,7 +54,7 @@ public class GradualSpan {
 		if (visited.containsKey(vis)) {
 			gn = visited.get(vis);
 		} else {
-			gn = new GradualNode();
+			gn = new GradualNode(vis.name());
 			visited.put(vis, gn);
 		}
 

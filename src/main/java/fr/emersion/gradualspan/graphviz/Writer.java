@@ -46,7 +46,10 @@ public class Writer {
 		//for (ValuedItem i : is) {
 		//	label += i+"\\n";
 		//}
-		this.w.printf("\t%s [label=\"%s\"];\n", nodeId, is.name());
+		String name = is.name();
+		if (name != null) {
+			this.w.printf("\t%s [label=\"%s\"];\n", nodeId, name);
+		}
 
 		for (ValuedNode child : is.children()) {
 			boolean childVisited = visited.containsKey(child);
@@ -73,6 +76,10 @@ public class Writer {
 
 	private void writeGradualNode(GradualNode n, Map<GradualNode, String> visited) {
 		String nodeId = this.nodeId(n, visited);
+		String name = n.name();
+		if (name != null) {
+			this.w.printf("\t%s [label=\"%s\"];\n", nodeId, name);
+		}
 
 		for (Map.Entry<GradualNode, Set<GradualItem>> e : n.children().entrySet()) {
 			GradualNode child = e.getKey();
