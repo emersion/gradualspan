@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/emersion/gradualspan.svg?branch=master)](https://travis-ci.org/emersion/gradualspan)
 
-WIP. The research paper will be published alongside this code when ready.
+Research paper, published at EGC 2018 (in French): http://www.editions-rnti.fr/?inprocid=1002382
 
 ## Usage
 
